@@ -195,9 +195,9 @@ class ContractTests(unittest.TestCase):
     ) -> Path:
         directory = self.repo / "docs" / "changes" / str(number)
         directory.mkdir(parents=True)
-        # #436: every route owes the spec; only production complex owes the plan here.
+        # #436: every route owes the spec; #444: every complex, development included, owes the plan.
         required = ["  - 00-summary.md", "  - 01-spec.md"]
-        if complexity == "complex" and not development:
+        if complexity == "complex":
             required.append("  - 02-plan.md")
         summary = SUMMARY.format(
                 number=number,
@@ -477,14 +477,25 @@ class ContractTests(unittest.TestCase):
             with self.subTest(missing=missing), self.assertRaisesRegex(ContractError, missing):
                 load_contract(self.repo, issue)
 
-    def test_development_phase_complex_contract_needs_spec_but_no_plan(self) -> None:
-        """#436 D3：无高风险 flag 的 development complex 只要 summary 与 spec。"""
-        self.write_contract(complexity="complex", change_type="feature", effect="add", development=True)
+    def test_development_phase_complex_contract_needs_spec_and_plan(self) -> None:
+        """#444 D3：无高风险 flag 的 development complex 也要 plan。"""
+        self.write_contract(complexity="complex", change_type="feature", effect="add", development=True,
+                            plan=True)
         issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
         contract = load_contract(self.repo, issue, change_control="development")
         self.assertEqual(contract.effective_complexity, "complex")
-        self.assertEqual(contract.required_docs, ("00-summary.md", "01-spec.md"))
+        self.assertEqual(contract.required_docs, ("00-summary.md", "01-spec.md", "02-plan.md"))
         self.assertEqual(contract.change_control, "development")
+
+    def test_development_phase_complex_without_plan_declaration_is_rejected(self) -> None:
+        """#444 D3：summary 不声明 plan 时报 route minimum。"""
+        directory = self.write_contract(complexity="complex", change_type="feature", effect="add",
+                                        development=True)
+        summary = directory / "00-summary.md"
+        summary.write_text(summary.read_text().replace("  - 02-plan.md\n", "", 1))
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
+        with self.assertRaisesRegex(ContractError, "route minimum roles: plan"):
+            load_contract(self.repo, issue, change_control="development")
 
     def test_development_phase_complex_without_spec_is_rejected(self) -> None:
         self.write_contract(complexity="complex", change_type="feature", effect="add",
@@ -498,14 +509,12 @@ class ContractTests(unittest.TestCase):
         self.write_contract(complexity="complex", change_type="feature", effect="add",
                             risk_flags="\n  - deployment", development=True)
         issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
-        with self.assertRaisesRegex(ContractError, "route minimum roles: plan"):
+        with self.assertRaisesRegex(ContractError, "02-plan.md"):
             load_contract(self.repo, issue, change_control="development")
 
     def test_high_risk_development_complex_with_plan_is_accepted(self) -> None:
-        directory = self.write_contract(complexity="complex", change_type="feature", effect="add",
-                                        risk_flags="\n  - deployment", development=True, plan=True)
-        summary = directory / "00-summary.md"
-        summary.write_text(summary.read_text().replace("  - 01-spec.md\n", "  - 01-spec.md\n  - 02-plan.md\n", 1))
+        self.write_contract(complexity="complex", change_type="feature", effect="add",
+                            risk_flags="\n  - deployment", development=True, plan=True)
         issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
         contract = load_contract(self.repo, issue, change_control="development")
         self.assertEqual(contract.required_docs, ("00-summary.md", "01-spec.md", "02-plan.md"))
@@ -513,7 +522,7 @@ class ContractTests(unittest.TestCase):
     def test_development_phase_still_requires_measurable_acceptance(self) -> None:
         """验收标准来自 spec（#436），门槛不随阶段放宽。"""
         directory = self.write_contract(complexity="complex", change_type="feature", effect="add",
-                                        development=True)
+                                        development=True, plan=True)
         directory.joinpath("01-spec.md").write_text(
             SPEC.format(number=12, complexity="complex").split("## Acceptance criteria")[0]
         )

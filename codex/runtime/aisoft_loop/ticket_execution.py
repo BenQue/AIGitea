@@ -267,6 +267,19 @@ def working_state(repo: Path) -> dict:
     return state
 
 
+def _pre_444_d3(summary: dict, obligations: dict) -> bool:
+    """An approved D3 contract that never declared a plan keeps its synthetic T01.
+
+    #444 is not retroactive, and the platform holds no verifiable approval time,
+    so the approved summary's own fields decide (owner's choice after review R2).
+    A new D3 contract is stopped earlier: confirmation point 1's document preflight
+    reports the missing plan before approval. D2 stays strict (#436).
+    """
+    from .contract import _required_roles
+    return (obligations['row'] == 'D3' and summary.get('status') == 'approved'
+            and 'plan' not in _required_roles(summary.get('required_docs')))
+
+
 def context(repo: Path, number: int, provider: str, issue: dict | None = None) -> dict:
     repo = repo.resolve()
     if Path(git(repo, 'rev-parse', '--show-toplevel').strip()).resolve() != repo:
@@ -284,13 +297,14 @@ def context(repo: Path, number: int, provider: str, issue: dict | None = None) -
     documents = resolve_documents(repo, number)
     directory = summary_path.parent
     phase, _ = repository_context(summary, repo)
-    # #436: the 文档义务 table decides whether a plan is owed; a high-risk
-    # development complex without one never reaches a synthetic T01.
+    # #436/#444: the 文档义务 table decides whether a plan is owed; a development
+    # complex without one never reaches a synthetic T01, except a D3 contract
+    # approved before #444.
     obligations = document_obligations(_classification_from_front_matter(summary), change_control=phase)
     present = declared_documents(summary, documents)
     if 'spec' not in present:
         raise ContractError('complex execution requires a mapped spec')
-    if obligations['plan'] == 'required' and 'plan' not in present:
+    if obligations['plan'] == 'required' and 'plan' not in present and not _pre_444_d3(summary, obligations):
         raise ContractError(f"route policy requires a mapped plan (文档义务 {obligations['row']})")
     if 'plan' not in present:
         # Without a plan the synthetic T01 executes the mapped spec's AC.

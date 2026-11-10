@@ -240,7 +240,7 @@ class ExecutionTests(GitFixture):
         self.assertEqual(self.run_git('diff', '--cached'), '')
 
     def test_small_rejected_and_development_uses_spec_without_plan(self):
-        """#436: without a plan the synthetic T01 executes the spec AC, not the Issue body."""
+        """#436/#444: a D3 contract approved before #444 without a plan keeps the synthetic T01 on the spec AC."""
         spec = self.directory / 'spec-ticket-adapter-261023.md'
         with patch('aisoft_loop.ticket_execution.repository_context', return_value=('development', False)):
             self.summary.write_text(self.summary.read_text().replace('  - plan\n', '').replace('  plan: plan-ticket-adapter-261023.md\n', ''))
@@ -253,6 +253,28 @@ class ExecutionTests(GitFixture):
             self.assertNotIn('AC-1: works', derived)
         with patch('aisoft_loop.ticket_execution.resolve_issue_route', return_value={'route': {'process': 'small'}}), self.assertRaises(ContractError):
             self.prepare()
+
+    def test_pre_444_compat_reads_only_the_approved_summary_fields(self):
+        """#444 R2 (owner chose option 1): status and required_docs decide; no date cutoff."""
+        from aisoft_loop.ticket_execution import _pre_444_d3
+        d3 = {'row': 'D3'}
+        old = {'status': 'approved', 'required_docs': ['summary', 'spec'], 'created': '2027-01-01'}
+        self.assertTrue(_pre_444_d3(old, d3))
+        for change in ({'status': 'analyzed'}, {'status': 'pr-open'},
+                       {'required_docs': ['summary', 'spec', 'plan']}):
+            with self.subTest(change=change):
+                self.assertFalse(_pre_444_d3({**old, **change}, d3))
+        for row in ('D2', 'D4', 'D5'):
+            with self.subTest(row=row):
+                self.assertFalse(_pre_444_d3(old, {'row': row}))
+
+    def test_d3_contract_declaring_a_plan_never_falls_back_to_t01(self):
+        """#444: only a summary that never declared the plan keeps the synthetic T01."""
+        with patch('aisoft_loop.ticket_execution.repository_context', return_value=('development', False)):
+            self.summary.write_text(self.summary.read_text().replace('  plan: plan-ticket-adapter-261023.md\n', ''))
+            self.plan.unlink()
+            with self.assertRaisesRegex(ContractError, 'missing required roles: plan'):
+                self.prepare()
 
     def test_development_with_a_plan_executes_its_tickets(self):
         """#436 D2: a high-risk development complex carries a plan, and the plan wins."""

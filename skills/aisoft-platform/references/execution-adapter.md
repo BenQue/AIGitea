@@ -34,7 +34,7 @@ blocked_by、AC、验证命令与 Expected、共享接口/全局约束及停止�
 
 SP 的 Task N 只是从 canonical Txx 生成的可再生视图，保留原 Txx 与全部约束。
 不能把映射 Txx plan 直接传给只识 Task N 的上游脚本，也不能人工维护第二份 plan。
-Matt 继续接收 exact Issue/Txx 与所需合同路径。不写 plan 的 development complex 使用 spec AC 与合成 T01；
+Matt 继续接收 exact Issue/Txx 与所需合同路径。#444 之前已批准、未声明 plan 的 development complex 旧合同使用 spec AC 与合成 T01；
 small 按 small-direct 执行简版 spec，不因这些接口增加票图或双轴审查。
 
 平台派生视图/回执放在 `.superpowers/aisoft/<Issue>/`，原版 SP scratch 放在

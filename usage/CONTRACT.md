@@ -34,9 +34,9 @@
 - **编排路径。** `$triage #N` → 判级。complex 按本仓的 `change_control`（有 `.aisoft/project.json` 时取自它，否则取自 governance manifest 中本仓的登记条目）：
   `production`（未声明时的默认）先 `$to-spec #N` → `$to-tickets #N` → 按计划执行（开发方式以路由表为准：Claude 与 Cursor
   用 superpowers `executing-plans`，Codex 用 `$implement #N Txx`）；
-  `development` 同样先写 spec，含高风险 flag 时另写 plan，否则以合成 `T01` 实现 spec 的验收标准。所有 Issue
-  都交付 spec：small 与无高风险的 development 用简版（目标、范围与非范围、验收、必要风险、`git_scope`），
-  不写 plan（平台路由表「文档义务」，#436）。summary 只作短索引。所有路由都要交付 summary `required_docs`
+  `development` 的 complex 同样先写 spec 再写 plan（#444），含高风险 flag 时用完整版 spec。所有 Issue
+  都交付 spec：small 与无高风险的 development complex 用简版（目标、范围与非范围、验收、必要风险、`git_scope`），
+  small 不写 plan（平台路由表「文档义务」，#436）。summary 只作短索引。所有路由都要交付 summary `required_docs`
   声明的文档（例如欠验证记录时的 `verification`）。确认点 1 前 `aisoft classify N` 的「文档预检」须为 OK。
   三者都要 `approved` 复核后才进入实现；`triage/ready-for-agent` 不等于 `approved`。
 - **两个确认点。** 人确认 Issue 合同并启动开发；本地实现与验证完成后，人确认提交唯一最终 PR，

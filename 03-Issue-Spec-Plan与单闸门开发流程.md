@@ -15,10 +15,10 @@ Issue #N
 - 所有变更必须有 Issue、映射的 `summary` 与映射的 `spec`（#436）。summary 是短索引与机器元信息；需求、范围、
   acceptance criteria 与风险只写在 spec。
 - spec 分简版与完整版，plan 是否必须，都按路由表「[文档义务](skills/aisoft-platform/references/route-policy.md)」查：
-  small 与无高风险 flag 的 development complex 用简版 spec、不写 plan；development complex 含高风险 flag 与
-  production complex 用完整版 spec 并必须有 plan。本册不复述那张表。
+  small 用简版 spec、不写 plan；无高风险 flag 的 development complex 用简版 spec 加 plan；development complex
+  含高风险 flag 与 production complex 用完整版 spec 加 plan（#444 起开发阶段 complex 一律要 plan）。本册不复述那张表。
 - **交付阶段**：`change_control` 为 `development` 的仓库（项目来源取自 `.aisoft/project.json`，站点来源取自 manifest），
-  不写 plan 时会话用合成 `T01`，验收取自 spec。未声明该字段的仓库一律按 `production` 处理。`verification` 的取舍
+  complex 同样按 plan 的 Txx 执行；#444 之前已批准、未声明 plan 的旧合同仍用合成 `T01`，验收取自 spec。未声明该字段的仓库一律按 `production` 处理。`verification` 的取舍
   两个阶段相同；它只表示本次变更欠一份无法由 diff review 与 required CI 重放的验证记录，不表示部署或终态。
 - 部署、迁移以及任何依赖真实环境或一次性观测的变更必须有映射的 `verification` 文档。
 - 新 Issue 从分析开始使用单一 `change/N-short-description` 分支；已有 `change/N` 与更早的 `spec/N` 只按历史证据兼容，不作为新 writer 的可选格式。
@@ -198,7 +198,7 @@ docs/changes/N-short-description/
 会话不得自行修改已经确认的 acceptance criteria 或扩大范围。
 执行视图、语义摘要/正常状态恢复、BASE/HEAD、证据与治理 STOP/fresh-run 统一遵循
 [execution-adapter](skills/aisoft-platform/references/execution-adapter.md)；small 不增票图，
-不写 plan 的 development complex 使用 spec AC + synthetic T01。
+#444 之前已批准、未声明 plan 的 development complex 旧合同使用 spec AC + synthetic T01。
 
 ### 声明与实际文件共用一个校验结果
 

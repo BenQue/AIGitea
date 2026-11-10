@@ -214,8 +214,8 @@ def load_contract(
         )
 
     declared_roles = _required_roles(summary.get("required_docs"))
-    # The 文档义务 table owns the minimum (#436): every route owes a spec, and a
-    # high-risk development complex also owes a plan.
+    # The 文档义务 table owns the minimum (#436): every route owes a spec, and
+    # every complex, development included, also owes a plan (#444).
     from .route_policy import document_obligations
 
     try:

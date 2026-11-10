@@ -347,7 +347,7 @@ class DocumentObligationTests(unittest.TestCase):
         cases = [
             (small, "production", "D5", "lite", "none", ["summary", "spec"]),
             (small, "development", "D5", "lite", "none", ["summary", "spec"]),
-            (complex_, "development", "D3", "lite", "none", ["summary", "spec"]),
+            (complex_, "development", "D3", "lite", "required", ["summary", "spec", "plan"]),
             (risky, "development", "D2", "full", "required", ["summary", "spec", "plan"]),
             (data, "development", "D2", "full", "required", ["summary", "spec", "plan"]),
             (complex_, "production", "D4", "full", "required", ["summary", "spec", "plan"]),
@@ -374,7 +374,7 @@ class DocumentObligationTests(unittest.TestCase):
         from aisoft_loop.contract import ContractError
         text = POLICY.read_text(encoding="utf-8")
         for old, new, message in (
-            ("| D3 | R2 | `lite` | `none` |", "| D3 | R2 或 R3 | `lite` | `none` |", "document obligation rows"),
+            ("| D3 | R2 | `lite` | `required` |", "| D3 | R2 或 R3 | `lite` | `required` |", "document obligation rows"),
             ("| D5 | R5 | `lite` | `none` |", "| D5 | R5 | `brief` | `none` |", "document obligation values"),
             ("| D4 | R3 或 R4 | `full` | `required` |", "| D4 | R3 或 R4 | `full` | `optional` |", "document obligation values"),
         ):
@@ -443,6 +443,31 @@ class DocumentObligationTests(unittest.TestCase):
             self.assertEqual(document_preflight(repo, 57), [
                 "summary 的 branch 必须是 change/57-matt-flow",
                 "spec 的 issue/branch 必须是 57 与 change/57-matt-flow"])
+
+    def test_preflight_requires_a_plan_for_development_complex(self):
+        """#444 AC-2: a new D3 contract without a plan never passes confirmation point 1."""
+        import tempfile
+        from unittest.mock import patch
+        from aisoft_loop.route_policy import document_preflight
+        with tempfile.TemporaryDirectory() as temp:
+            repo, directory, names = self.preflight_repo(temp)
+            summary = directory / names["summary"]
+            summary.write_text(summary.read_text().replace("change_type: bugfix", "change_type: feature")
+                               .replace(": small", ": complex").replace("contract_effect: restore", "contract_effect: add"))
+            with patch("aisoft_loop.route_policy.repository_context", return_value=("development", False)):
+                gaps = document_preflight(repo, 57)
+            self.assertEqual(len(gaps), 1)
+            self.assertIn("summary required_docs 缺 plan", gaps[0])
+            self.assertIn("文档义务 D3", gaps[0])
+            # Declaring, mapping and covering the plan clears the gap.
+            plan_name = "plan-matt-flow-260808.md"
+            summary.write_text(summary.read_text().replace("  - spec\n", "  - spec\n  - plan\n", 1)
+                               .replace(f"  spec: {names['spec']}\n", f"  spec: {names['spec']}\n  plan: {plan_name}\n", 1))
+            (directory / plan_name).write_text("---\nissue: 57\nbranch: change/57-matt-flow\ncreated: 2026-08-08\n---\n\n# Plan\n")
+            spec = directory / names["spec"]
+            spec.write_text(spec.read_text().replace("git_scope:\n", f"git_scope:\n  - docs/changes/57-matt-flow/{plan_name}\n", 1))
+            with patch("aisoft_loop.route_policy.repository_context", return_value=("development", False)):
+                self.assertEqual(document_preflight(repo, 57), [])
 
     def test_preflight_and_classify_report_a_missing_mapped_file(self):
         """Round 2: a mapped spec whose file is missing still yields a GAP, also from the CLI."""
