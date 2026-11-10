@@ -20,8 +20,9 @@ from aisoft_host_access.project_source import (
 from aisoft_worktree_owner import SESSION_ENV
 
 from tests.project_source_fixture import (
-    AGENT, BASE, BRANCH, LABELS, REMOTE_URL, ROOT, SENTINEL, SESSION, FakeGitea, build_project,
-    declaration, git, remote_runner, write_declaration,
+    AGENT, BASE, BRANCH, LABELS, NAME, REMOTE_URL, ROOT, SENTINEL, SESSION, TEMPLATE_PATHS,
+    FakeGitea, build_project, declaration, git, remote_runner, template_documents, template_main,
+    write_declaration,
 )
 
 
@@ -446,7 +447,9 @@ class OperationsTest(ProjectSourceCase):
         self.assertRefused("ARGUMENT_INVALID", lambda: self.broker().execute(
             None, "gitea.pull.create", issue=7, title="demo", body="no closing line"))
 
-    def test_template_owning_changes_need_the_site_source(self) -> None:
+    def test_template_context_needs_a_verified_git_operation(self) -> None:
+        # #445: outside a credential-verified Git operation there is no fresh
+        # main to bind, so no template context exists at all.
         self.assertRefused("SCOPE_DENIED",
                            lambda: self.broker()._template_context(self.broker().contract.projects[0]))
 
@@ -454,6 +457,215 @@ class OperationsTest(ProjectSourceCase):
         result = subprocess.run(["git", "rev-parse", "--verify", "-q", BRANCH], cwd=self.remote,
                                 text=True, stdout=subprocess.PIPE, check=False)
         return result.stdout.strip()
+
+
+class ProjectTemplateScopeTest(unittest.TestCase):
+    """#445: the project source updates only templates already canonical on fresh main."""
+
+    SUMMARY, SPEC = TEMPLATE_PATHS[0], TEMPLATE_PATHS[1]
+
+    def build(self, selected=(TEMPLATE_PATHS[0], TEMPLATE_PATHS[1]), *, main_roles=None,
+              changed=None, issue_url=None, prepare_main=None) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        session = patch.dict(os.environ, {SESSION_ENV: SESSION})
+        session.start()
+        self.addCleanup(session.stop)
+        options = {} if issue_url is None else {"issue_url": issue_url}
+        prepare = prepare_main or (template_main() if main_roles is None else template_main(main_roles))
+        self.remote, self.canonical, self.linked = build_project(
+            self.temporary.name, prepare_main=prepare,
+            documents=template_documents(selected, changed=changed, **options))
+        self.commands: list = []
+        self.gitea = FakeGitea()
+
+    def broker(self, runner=None):
+        declared = load_project_declaration(str(self.linked))
+        return ProjectSourceBroker(
+            declared, credentials=ProjectCredentials(declared, fill=static_fill()), transport=self.gitea,
+            runner=runner or remote_runner(self.remote, self.commands),
+            label_manifest_path=str(LABELS), invocation_cwd=str(self.linked))
+
+    def push(self, runner=None):
+        return self.broker(runner).execute(None, "git.push.change", branch=BRANCH)
+
+    def refused(self, code, runner=None) -> BrokerError:
+        with self.assertRaises(BrokerError) as caught:
+            self.push(runner)
+        self.assertEqual(caught.exception.code, code, str(caught.exception))
+        self.assertNotIn(SENTINEL, str(caught.exception))
+        return caught.exception
+
+    def remote_branch(self) -> str:
+        return subprocess.run(["git", "rev-parse", "--verify", "-q", BRANCH], cwd=self.remote,
+                              text=True, stdout=subprocess.PIPE, check=False).stdout.strip()
+
+    def commit(self, message: str) -> None:
+        git(["add", "-A"], cwd=self.linked)
+        git(["commit", "-q", "-m", message], cwd=self.linked)
+
+    def advance_main(self) -> None:
+        (self.canonical / "main.txt").write_text("moved\n")
+        git(["add", "main.txt"], cwd=self.canonical)
+        git(["commit", "-q", "-m", "main moved"], cwd=self.canonical)
+        git(["push", "-q", str(self.remote), "HEAD:refs/heads/main"], cwd=self.canonical)
+
+    def moving_runner(self, *, after_main_reads: int):
+        """Move remote main once the engine has read it `after_main_reads` times."""
+        inner = remote_runner(self.remote, self.commands)
+        reads = []
+
+        def runner(argv, *, cwd=None, env=None):
+            result = inner(argv, cwd=cwd, env=env)
+            if list(argv[:2]) == ["git", "ls-remote"] and "refs/heads/main" in argv:
+                reads.append(1)
+                if len(reads) == after_main_reads:
+                    self.advance_main()
+            return result
+        runner.reads = reads
+        return runner
+
+    # AC-1 -------------------------------------------------------------
+    def test_declared_update_of_existing_templates_is_published(self) -> None:
+        self.build()
+        pushed = self.push()
+        self.assertEqual(pushed["code"], "PUBLISHED")
+        self.assertEqual(self.remote_branch(), git(["rev-parse", "HEAD"], cwd=self.linked))
+
+    def test_partial_update_of_one_existing_template_is_published(self) -> None:
+        self.build(selected=(self.SUMMARY,))
+        self.assertEqual(self.push()["code"], "PUBLISHED")
+        # A second, later update in the same scope publishes as an ordinary FF.
+        path = self.linked / self.SUMMARY
+        path.write_text(path.read_text() + "second\n")
+        self.commit("#7 T02: second template update")
+        self.assertEqual(self.push()["code"], "PUBLISHED")
+        self.assertEqual(self.remote_branch(), git(["rev-parse", "HEAD"], cwd=self.linked))
+
+    def test_site_manifests_are_never_read(self) -> None:
+        self.build()
+        with patch("aisoft_main_integration.template_scope_context",
+                   side_effect=AssertionError("site template binding used")):
+            self.assertEqual(self.push()["code"], "PUBLISHED")
+
+    # AC-2 / AC-3 refusals ---------------------------------------------
+    def test_first_time_add_is_refused_when_main_lacks_any_target(self) -> None:
+        for roles in ((), ("spec",), ("summary", "plan")):
+            with self.subTest(main_roles=roles):
+                self.build(main_roles=roles)
+                self.refused("SCOPE_DENIED")
+                self.assertEqual(self.remote_branch(), "")
+
+    def test_non_canonical_main_types_are_refused(self) -> None:
+        def executable(canonical: Path) -> None:
+            template_main()(canonical)
+            (canonical / self.SUMMARY).chmod(0o755)
+
+        def linked_file(canonical: Path) -> None:
+            template_main(("spec", "plan", "verification"))(canonical)
+            (canonical / self.SUMMARY).symlink_to("spec.md")
+
+        def linked_parent(canonical: Path) -> None:
+            real = canonical / "docs/real-template"
+            real.mkdir(parents=True)
+            for role in ("summary", "spec", "plan", "verification"):
+                (real / f"{role}.md").write_text(role + "\n")
+            (canonical / "docs/changes").mkdir(parents=True)
+            (canonical / "docs/changes/_template").symlink_to("../real-template", target_is_directory=True)
+
+        def file_parent(canonical: Path) -> None:
+            (canonical / "docs/changes").mkdir(parents=True)
+            (canonical / "docs/changes/_template").write_text("not a directory\n")
+
+        for name, prepare in (("executable", executable), ("symlink", linked_file),
+                              ("linked-parent", linked_parent), ("file-parent", file_parent)):
+            with self.subTest(main=name):
+                try:
+                    self.build(selected=(self.SUMMARY,), prepare_main=prepare, changed=())
+                except subprocess.CalledProcessError:
+                    self.fail(f"fixture {name} could not be built")
+                with self.assertRaises(BrokerError) as caught:
+                    self.push()
+                self.assertIn(caught.exception.code, {"SCOPE_DENIED", "GIT_OBJECT_DENIED"})
+                self.assertEqual(self.remote_branch(), "")
+
+    def test_undeclared_template_change_is_refused(self) -> None:
+        self.build(selected=(self.SUMMARY,), changed=(self.SUMMARY, self.SPEC))
+        self.refused("SCOPE_DENIED")
+        self.assertEqual(self.remote_branch(), "")
+
+    def test_wrong_repository_binding_is_refused(self) -> None:
+        for url in (f"{BASE}/other/{NAME}/issues/7", f"{BASE}/acme/other/issues/7",
+                    f"{BASE}/acme/{NAME}/issues/8", "http://elsewhere.test:3000/acme/widget/issues/7"):
+            with self.subTest(url=url):
+                self.build(issue_url=url)
+                self.refused("SCOPE_UNKNOWN")
+                self.assertEqual(self.remote_branch(), "")
+
+    def test_mid_history_delete_or_type_change_then_restore_is_refused(self) -> None:
+        for kind in ("delete", "executable", "symlink"):
+            with self.subTest(kind=kind):
+                self.build(selected=(self.SUMMARY,))
+                target = self.linked / self.SUMMARY
+                original = target.read_bytes()
+                target.unlink()
+                if kind == "executable":
+                    target.write_bytes(original)
+                    target.chmod(0o755)
+                elif kind == "symlink":
+                    target.symlink_to("spec.md")
+                self.commit("#7 T02: invalid template kind")
+                if target.exists() or target.is_symlink():
+                    target.unlink()
+                target.write_bytes(original)
+                self.commit("#7 T02: restore template")
+                self.refused("SCOPE_DENIED")
+                self.assertEqual(self.remote_branch(), "")
+
+    def test_main_moving_before_transport_is_refused_without_a_write(self) -> None:
+        # Reads: 1 engine baseline, 2 template baseline, 3+ template verify.
+        for moment in (1, 2, 3):
+            with self.subTest(after_main_reads=moment):
+                self.build()
+                runner = self.moving_runner(after_main_reads=moment)
+                with self.assertRaises(BrokerError) as caught:
+                    self.push(runner)
+                self.assertIn(caught.exception.code, {"BASE_BRANCH_STALE", "GIT_OBJECT_DENIED"})
+                self.assertNotIn("possible_write\":true", str(caught.exception))
+                self.assertFalse(any(argv[:2] == ["git", "push"] for argv, _env in self.commands))
+                self.assertEqual(self.remote_branch(), "")
+
+    def test_main_moving_after_transport_reports_a_possible_write(self) -> None:
+        self.build()
+        probe = self.moving_runner(after_main_reads=10 ** 6)
+        self.push(probe)
+        total = len(probe.reads)
+        # Rebuild and move main on the last read, the one after the transport.
+        # The last two reads follow the transport: the engine's own post-push
+        # main read, then the template baseline re-check. Either one reports
+        # that the remote may already hold H and stops PR preparation.
+        for moment, code in ((total - 2, "BASE_ADVANCED_AFTER_PUSH"), (total - 1, "BASE_BRANCH_STALE")):
+            with self.subTest(after_main_reads=moment):
+                self.build()
+                error = self.refused(code, self.moving_runner(after_main_reads=moment))
+                self.assertIn('"possible_write":true', str(error))
+                self.assertIn('"write_status":"PUBLISHED"', str(error))
+                self.assertEqual(self.remote_branch(), git(["rev-parse", "HEAD"], cwd=self.linked))
+
+    def test_main_unreadable_for_the_template_baseline_is_refused(self) -> None:
+        self.build()
+        inner = remote_runner(self.remote, self.commands)
+        reads = []
+
+        def runner(argv, *, cwd=None, env=None):
+            if list(argv[:2]) == ["git", "ls-remote"] and "refs/heads/main" in argv:
+                reads.append(1)
+                if len(reads) == 2:
+                    return subprocess.CompletedProcess(argv, 128, "", "fatal: unreachable")
+            return inner(argv, cwd=cwd, env=env)
+        with self.assertRaises(BrokerError):
+            self.push(runner)
+        self.assertEqual(self.remote_branch(), "")
 
 
 class SourceSelectionTest(ProjectSourceCase):

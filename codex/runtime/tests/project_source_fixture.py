@@ -352,6 +352,39 @@ class GiteaServer:
 
 
 TEMPLATES = ROOT / "templates/docs/changes/_template"
+TEMPLATE_ROLES = ("summary", "spec", "plan", "verification")
+TEMPLATE_PATHS = tuple(f"docs/changes/_template/{role}.md" for role in TEMPLATE_ROLES)
+ISSUE_URL = f"{BASE}/{OWNER}/{NAME}/issues/7"
+
+
+def template_main(roles=TEMPLATE_ROLES):
+    """prepare_main hook: target main already holds these vendored templates (#445)."""
+    def prepare(canonical: Path) -> None:
+        directory = canonical / "docs/changes/_template"
+        directory.mkdir(parents=True, exist_ok=True)
+        (canonical / "ADOPTED.md").write_text("vendored templates: " + ",".join(roles) + "\n")
+        for role in roles:
+            (directory / f"{role}.md").write_bytes((TEMPLATES / f"{role}.md").read_bytes())
+    return prepare
+
+
+def template_documents(selected, *, changed=None, issue_url: str = ISSUE_URL):
+    """documents hook: Issue 7 declares `selected` templates and edits `changed` (#445)."""
+    def write(directory: Path) -> None:
+        linked = directory.parents[2]
+        summary, spec = "summary-demo-change-261027.md", "spec-demo-change-261027.md"
+        paths = ["change.txt", f"docs/changes/7-demo-change/{summary}",
+                 f"docs/changes/7-demo-change/{spec}", *selected]
+        (directory / summary).write_text(f"---\nissue: 7\ngitea_url: {issue_url}\nbranch: {BRANCH}\n"
+                                         f"status: approved\ndocuments:\n  spec: {spec}\n---\n")
+        (directory / spec).write_text(f"---\nissue: 7\nbranch: {BRANCH}\ngit_scope:\n"
+                                      + "".join(f"  - {path}\n" for path in paths) + "---\n")
+        for path in (selected if changed is None else changed):
+            target = linked / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            before = target.read_text() if target.exists() else ""
+            target.write_text(before + "\n<!-- #445 fixture update -->\n")
+    return write
 
 
 def export_tool_kit(checkout: Path) -> None:
