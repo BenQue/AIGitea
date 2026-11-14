@@ -252,7 +252,9 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     # naming rule from #108 holds: an operation with an issue. segment attaches,
     # one without defines. One operation per label dimension, never one that
     # takes a label set: set writes lifecycle, classify writes the analyzer's
-    # two dimensions, and neither can drop the other's labels or triage/.
+    # two dimensions, and neither can drop the other's labels or triage/; the
+    # only triage/ change anywhere is labels.set closing the triage state on a
+    # terminal write (#448).
     #
     # classify exists because the analyzer dimensions had exactly one writer,
     # aisoft_loop's apply-analysis, and it only ever runs inside the Development

@@ -93,6 +93,21 @@ LABEL_MANAGED_PREFIXES = ("type/", "complexity/", "triage/")
 # installed manifest is still required on top of this set, so a retired or
 # undeclared name fails closed.
 ENTRY_LABELS = ("needs-analysis", "triage/needs-triage")
+# The terminal lifecycle states and the triage labels a terminal write treats
+# specially (#448). Literal for the same reason ENTRY_LABELS is: these are rules
+# 03 states about Matt's triage dimension, not a label dimension to project.
+# A terminal write closes the triage *state*: after completed or deployed there
+# is no next handler, so needs-triage, needs-info, ready-for-agent and
+# ready-for-human would all be false claims. Membership is the triage/ namespace
+# minus the categories, so a state Matt adds later is closed as well. The two
+# categories describe what the Issue was (bug or enhancement), which stays true
+# after delivery, so they survive. wontfix is the one state a terminal write
+# refuses instead of closing: the label contract says it never maps to
+# completed or deployed. Adding a category is a label contract change that
+# updates this tuple together with 03 and docs/agents/triage-labels.md.
+TERMINAL_LIFECYCLE_LABELS = ("completed", "deployed")
+TRIAGE_CATEGORY_LABELS = ("triage/bug", "triage/enhancement")
+TRIAGE_WONTFIX_LABEL = "triage/wontfix"
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 # Anything at or before the epoch is Gitea's unset time, not a fact (#225).
 # Compared as an instant rather than matched as a string, because the same zero
@@ -2260,8 +2275,29 @@ class HostAccessBroker:
     def _set_issue_lifecycle(
         self, repo_api: str, token: str, number: int, lifecycle: str
     ) -> dict[str, object]:
-        """Replace the Issue's lifecycle dimension, leaving every other label."""
+        """Replace the Issue's lifecycle dimension, leaving every other label.
+
+        A terminal write (completed or deployed) also closes the triage state
+        dimension in the same PUT (#448). Nothing else ever removes it: the
+        entrance label triage/needs-triage is written once by
+        gitea.issue.create and every other writer carries triage/ across, so
+        without this the Issue keeps claiming it awaits triage after delivery.
+        Folding the state into the replaced dimension, rather than adding a
+        second write, also makes an already-terminal Issue that still wears a
+        stale state "not exactly right", so rewriting its own terminal state
+        repairs it and a correct Issue stays a no-PUT no-op.
+        """
         states = self._lifecycle_labels()
+        terminal = lifecycle in TERMINAL_LIFECYCLE_LABELS
+
+        def in_dimension(name: str) -> bool:
+            if name in states:
+                return True
+            return (
+                terminal
+                and name.startswith("triage/")
+                and name not in TRIAGE_CATEGORY_LABELS
+            )
 
         def guard(attached: set[str]) -> None:
             # completed and deployed are the two terminal states and deployed is
@@ -2274,12 +2310,21 @@ class HostAccessBroker:
                     "REQUEST_DENIED",
                     "Issue is already deployed; downgrading it to completed is a human decision",
                 )
+            # wontfix says the change is not implemented; a terminal state says
+            # it was delivered. The label contract forbids mapping one onto the
+            # other, so the contradiction goes to a human before any write.
+            if terminal and TRIAGE_WONTFIX_LABEL in attached:
+                raise BrokerError(
+                    "REQUEST_DENIED",
+                    f"Issue carries {TRIAGE_WONTFIX_LABEL}, which never maps to "
+                    f"{lifecycle}; resolving that is a human decision",
+                )
 
         return self._replace_issue_label_dimensions(
             repo_api,
             token,
             number,
-            in_dimension=lambda name: name in states,
+            in_dimension=in_dimension,
             targets=(lifecycle,),
             guard=guard,
         )
@@ -2382,7 +2427,9 @@ class HostAccessBroker:
         # Everything outside the named dimensions is carried across by id. This
         # is a replacement of dimensions, not an assignment of a label set:
         # there is no way to ask these operations to drop the dimensions they do
-        # not own, triage/ or a project extension label.
+        # not own, triage/ or a project extension label. The one exception is
+        # the triage state a terminal lifecycle write closes, which
+        # _set_issue_lifecycle names as part of its own dimension (#448).
         final = sorted(
             {
                 int(item["id"])

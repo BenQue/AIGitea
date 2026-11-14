@@ -1987,6 +1987,10 @@ class HostAccessBrokerTests(unittest.TestCase):
         instead of replacing one dimension, which would silently strip the
         analyzer's type/ and complexity/ output, Matt's triage/ state, and the
         project's own area/ extension the first time it ran.
+
+        The target is a non-terminal state on purpose (#448 AC-4): only a
+        terminal write closes the triage state dimension, so a mid-flow write
+        must still carry triage/ready-for-agent across untouched.
         """
         repository = self._provisioned_labels()
         repository.append(
@@ -2005,7 +2009,7 @@ class HostAccessBrokerTests(unittest.TestCase):
 
         value = broker.execute(
             "aisoft-platform", "gitea.issue.labels.set",
-            number=115, lifecycle="completed",
+            number=115, lifecycle="approved",
         )
 
         self.assertEqual(value["result"], "updated")
@@ -2013,16 +2017,159 @@ class HostAccessBrokerTests(unittest.TestCase):
             set(value["before"]) - set(value["after"]), {"pr-open"}
         )
         self.assertEqual(
-            set(value["after"]) - set(value["before"]), {"completed"}
+            set(value["after"]) - set(value["before"]), {"approved"}
         )
         self.assertEqual(
             sorted(str(item["name"]) for item in attached),
-            ["area/web", "completed", "complexity/complex", "triage/ready-for-agent",
+            ["approved", "area/web", "complexity/complex", "triage/ready-for-agent",
              "type/platform"],
         )
         puts = [payload for method, _url, payload in calls if method == "PUT"]
         self.assertEqual(len(puts), 1)
         self.assertIn(900, puts[0]["labels"])
+
+    def _terminal_triage_repository(self) -> list[dict[str, object]]:
+        repository = self._provisioned_labels()
+        repository.extend([
+            {"id": 900, "name": "area/web", "color": "cccccc", "description": "ext"},
+            {"id": 901, "name": "priority/high", "color": "dddddd", "description": "ext"},
+        ])
+        return repository
+
+    def test_terminal_lifecycle_write_closes_the_triage_state(self) -> None:
+        """#448 AC-1: a terminal write leaves no triage state behind.
+
+        Before #448 nothing ever removed triage/needs-triage: the three label
+        writers each replace only their own dimension, so the entrance label
+        written by gitea.issue.create outlived the Issue's completion and kept
+        claiming the Issue was still waiting for triage. Every state value is
+        closed, the two categories and every other dimension survive.
+        """
+        states = (
+            "triage/needs-triage", "triage/needs-info",
+            "triage/ready-for-agent", "triage/ready-for-human",
+        )
+        for terminal in ("completed", "deployed"):
+            for state in states:
+                with self.subTest(terminal=terminal, state=state):
+                    repository = self._terminal_triage_repository()
+                    by_name = {str(item["name"]): item for item in repository}
+                    attached = [
+                        by_name[name] for name in (
+                            "type/platform", "complexity/complex", "triage/bug",
+                            "triage/enhancement", state, "area/web", "priority/high",
+                            "pr-open",
+                        )
+                    ]
+                    calls: list[tuple] = []
+                    broker = self._issue_label_broker(repository, attached, calls)
+
+                    value = broker.execute(
+                        "aisoft-platform", "gitea.issue.labels.set",
+                        number=448, lifecycle=terminal,
+                    )
+
+                    self.assertEqual(value["result"], "updated")
+                    self.assertEqual(
+                        set(value["before"]) - set(value["after"]), {"pr-open", state}
+                    )
+                    self.assertEqual(
+                        sorted(str(item["name"]) for item in attached),
+                        sorted([
+                            terminal, "area/web", "complexity/complex", "priority/high",
+                            "triage/bug", "triage/enhancement", "type/platform",
+                        ]),
+                    )
+                    self.assertEqual(
+                        len([m for m, _, _ in calls if m == "PUT"]), 1
+                    )
+
+    def test_terminal_rewrite_closes_a_stale_triage_state(self) -> None:
+        """#448 AC-2: an Issue already terminal is not a no-op while it lies.
+
+        This is the repair path for every Issue completed before #448: writing
+        the terminal state it already holds removes the stale triage state and
+        leaves the lifecycle dimension as it was. Once right, a repeat is a
+        no-op with no PUT, the same rule test_issue_label_set_is_idempotent pins.
+        """
+        for terminal in ("completed", "deployed"):
+            with self.subTest(terminal=terminal):
+                repository = self._terminal_triage_repository()
+                by_name = {str(item["name"]): item for item in repository}
+                attached = [
+                    by_name["type/docs"], by_name["complexity/small"],
+                    by_name[terminal], by_name["triage/needs-triage"],
+                    by_name["priority/high"],
+                ]
+                calls: list[tuple] = []
+                broker = self._issue_label_broker(repository, attached, calls)
+
+                repaired = broker.execute(
+                    "aisoft-platform", "gitea.issue.labels.set",
+                    number=297, lifecycle=terminal,
+                )
+                self.assertEqual(repaired["result"], "updated")
+                self.assertEqual(
+                    set(repaired["before"]) - set(repaired["after"]),
+                    {"triage/needs-triage"},
+                )
+                self.assertEqual(set(repaired["after"]) - set(repaired["before"]), set())
+                self.assertEqual(len([m for m, _, _ in calls if m == "PUT"]), 1)
+
+                calls.clear()
+                again = broker.execute(
+                    "aisoft-platform", "gitea.issue.labels.set",
+                    number=297, lifecycle=terminal,
+                )
+                self.assertEqual(again["result"], "no-op")
+                self.assertEqual([m for m, _, _ in calls if m == "PUT"], [])
+
+    def test_terminal_lifecycle_write_refuses_wontfix(self) -> None:
+        """#448 AC-3: wontfix must not map to completed or deployed.
+
+        An Issue declaring "not implemented" and "delivered" at once is a
+        contradiction a human resolves, so the terminal write fails closed
+        before any PUT. A non-terminal write is not that claim and still goes
+        through with the wontfix label carried across (AC-4).
+        """
+        for terminal in ("completed", "deployed"):
+            with self.subTest(terminal=terminal):
+                repository = self._terminal_triage_repository()
+                by_name = {str(item["name"]): item for item in repository}
+                attached = [
+                    by_name["type/platform"], by_name["triage/wontfix"],
+                    by_name["pr-open"],
+                ]
+                calls: list[tuple] = []
+                broker = self._issue_label_broker(repository, attached, calls)
+
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute(
+                        "aisoft-platform", "gitea.issue.labels.set",
+                        number=221, lifecycle=terminal,
+                    )
+                self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+                self.assertIn("triage/wontfix", str(caught.exception))
+                self.assertEqual([m for m, _, _ in calls if m == "PUT"], [])
+                self.assertEqual(
+                    sorted(str(item["name"]) for item in attached),
+                    ["pr-open", "triage/wontfix", "type/platform"],
+                )
+
+        repository = self._terminal_triage_repository()
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [by_name["triage/wontfix"], by_name["pr-open"]]
+        calls = []
+        broker = self._issue_label_broker(repository, attached, calls)
+        value = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.set",
+            number=221, lifecycle="awaiting-triage",
+        )
+        self.assertEqual(value["result"], "updated")
+        self.assertEqual(
+            sorted(str(item["name"]) for item in attached),
+            ["awaiting-triage", "triage/wontfix"],
+        )
 
     def test_issue_label_set_refuses_to_downgrade_deployed_to_completed(self) -> None:
         """AC-4: deployed and completed are mutually exclusive, deployed is stronger.
