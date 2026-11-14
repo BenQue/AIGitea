@@ -60,7 +60,7 @@ updated: 2026-11-14
 
 ## 方案与决策
 
-确认点 1 确认下列推荐答案后，本节即为合同。
+负责人 2026-11-15 在确认点 1 批准下列方案，本节即为合同。
 
 - **D1 清什么**：终态写入时把 triage 状态标签视为与生命周期同一次替换的维度。清除集合是 Issue 上所有 `triage/*` 标签减去两个 category（`triage/bug`、`triage/enhancement`），按命名空间判定而不是按清单，与 `complexity/standard` 的处理同一规则。category 是 Issue 的类别事实，终态后仍然成立，保留。终态之后没有「下一处理者」，所以不写入任何新的 triage 状态。
 - **D2 遇到 `triage/wontfix`**：终态写入 fail closed，返回 `REQUEST_DENIED`，不发 PUT。标签合同写明 wontfix「不得映射为 completed 或 deployed」，一个 Issue 同时声明「不实施」和「已交付」是需要人判断的矛盾。`aisoft complete --apply` 遇到时如实报 `broker-refused`，由人决定。
@@ -92,4 +92,4 @@ updated: 2026-11-14
 
 ## 未决问题
 
-- 无。D1–D5 以确认点 1 的确认为准；负责人改动任何一条时，在此更新并同步 plan。
+- 无。负责人 2026-11-15 在确认点 1 按推荐方案批准 D1–D5。

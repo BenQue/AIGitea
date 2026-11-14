@@ -33,11 +33,11 @@ route:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/448-terminal-clears-triage-state
 pr_url:
 created: 2026-11-14
-updated: 2026-11-14
+updated: 2026-11-15
 ---
 
 ## 索引
