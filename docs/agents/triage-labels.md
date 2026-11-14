@@ -20,9 +20,11 @@ to AISoftPlatform `type/*`, `complexity/*` and lifecycle labels.
 | `ready-for-human` | `triage/ready-for-human` |
 | `wontfix` | `triage/wontfix` |
 
-Every triaged Issue carries exactly one category and one state. `triage/ready-for-agent` only means an Agent may take
-the next preparation or implementation step; implementation still requires a complete contract and platform
-`approved`. `triage/wontfix` closes the Issue without `completed` or `deployed`.
+Every triaged Issue carries exactly one category and one state until it reaches a terminal state.
+`triage/ready-for-agent` only means an Agent may take the next preparation or implementation step; implementation
+still requires a complete contract and platform `approved`. `triage/wontfix` closes the Issue without `completed` or
+`deployed`. Writing `completed` or `deployed` removes every triage state in the same write and keeps the category,
+because a delivered Issue has no next handler; the write is refused while the Issue carries `triage/wontfix`.
 
 ## Platform admission question
 
