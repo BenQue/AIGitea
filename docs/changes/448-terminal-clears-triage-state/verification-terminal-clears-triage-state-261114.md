@@ -21,7 +21,7 @@ updated: 2026-11-15
 
 ## 基线与范围
 
-- Commit SHA: 本地验证与 R1 审查的候选 `a1fdb1afe4b7a8113bbce6ef0ba0d0b64abe3086`；R1 修复后的候选见「交叉审查」R2 行。
+- Commit SHA: R1 候选 `a1fdb1afe4b7a8113bbce6ef0ba0d0b64abe3086`；R1 修复后的最终代码候选 `1b7e553a028d91ee94c5506db851357f4bbf3873`（smoke 与 R2 审查都对它）；之后只有本证据提交。
 - 基线：`origin/main` = `2c65c8371d7b92b7e25f7a9cec687b6d359e3e59`
 - 环境: macOS 本机；Claude Opus 5.5（实现，provider claude）；Codex GPT-6-Astra high（只读交叉审查）
 - 本记录负责证明的 acceptance criteria: AC-1–AC-8。AC-7 在合并前只证明命令与步骤就绪，执行结果在合并后写成 Issue 评论。
@@ -44,7 +44,7 @@ updated: 2026-11-15
 | `bash -n` 与 `shellcheck` 两个改动的 shell 文件 | PASS | 无输出，退出码 0 |
 | `bash codex/tools/usage-bundle.sh --release 1.24.1 ... --compatibility patch` 后 `--verify` | PASS | `VERIFIED 1.24.1 sha256:bf7058d9ea6f7e15c7da23d6e9c9cf717f03936cdbff404828db23f30b9f1218`；R1 修复改的 02/03、部署钩子不是发布包成员，修复后重跑仍同值 |
 | `bash codex/tests/smoke.sh`（候选 `a1fdb1af`） | PASS | `smoke rc=0`；runtime `Ran 839 tests ... OK` |
-| `bash codex/tests/smoke.sh`（R1 修复后候选） | 见 R2 行 | 修复提交后重跑 |
+| `bash codex/tests/smoke.sh`（R1 修复后候选 `1b7e553a`） | PASS | `smoke rc=0`；runtime `Ran 839 tests ... OK`；`mark-deployed tests passed` |
 | `aisoft classify --verify 448` | PASS | `result: projected`，`bugfix` / `complex` |
 | `aisoft check-change-documents` 与 `aisoft classify 448` 文档预检 | PASS | `gap=0`；`文档预检 #448: OK` |
 
@@ -59,12 +59,15 @@ updated: 2026-11-15
 | 轮次 | 实现方 | 审查方 | 审查的 head | 结论 |
 |---|---|---|---|---|
 | R1 | Claude Opus 5.5 | Codex GPT-6-Astra / high，hc 终端 `review-448`（t3m），Herdr 标签页「AISoftPlatform #448 review (codex 只读)」可见，`-s read-only -a never` | `a1fdb1afe4b7a8113bbce6ef0ba0d0b64abe3086` | FAIL：2 P2 1 P3 |
+| R2 | Claude Opus 5.5 | 同一只读 Codex 会话（`hc send review-448`） | `1b7e553a028d91ee94c5506db851357f4bbf3873` | PASS：新发现无，R1 三条均已解决 |
 
 R1 findings 与处置：
 
 - [P2] `codex/tools/mark-deployed-issues.sh` 是第二个终态写者，直接 PUT `deployed`，不清 triage state，也不拦 wontfix。处置：属范围扩张，负责人 2026-11-15 选择并入 #448（spec D6、AC-8、plan T04）；钩子按同一规则收口，wontfix 跳过并告警且退出码仍为 0。
 - [P2] verification 仍为占位稿，缺 AC-7 的重装命令与读回步骤。处置：本文件补齐「合并后：重装与读回」「合并后：存量清理（D5）」两节。
 - [P3] 项目来源测试未覆盖 no-op 无 PUT、`deployed` 与拒写无 PUT。处置：`test_project_declared_source.py` 补三类断言。
+
+R2 核对：部署钩子 jq 按命名空间清除（未知 triage state 也清）、wontfix 在 PUT 前跳过、各路径退出码为 0、告警不含 token；`MOCK_ISSUE` 不影响既有用例；spec/plan/02/03 与实现一致。R2 中 `test-mark-deployed-issues.sh` 因沙箱不能 `mktemp` 记 NOT RUN，改用纯内存模拟覆盖清理、wontfix、API 失败、无效 Issue 四种场景；该脚本的真实运行证据是上表实现方 smoke 行。R2 之后只有证据提交。
 
 R1 中 Codex 在只读沙箱里跑两模块全量 unittest 得到 116 个 errors，原因是沙箱不能建临时目录，不是代码失败；它单独跑的 8 个相关用例全部通过，并在内存里用 BASE 方法做了反向验证（12 个预期失败）。
 

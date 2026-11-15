@@ -29,10 +29,10 @@ updated: 2026-11-15
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | broker 终态写入清除 triage 状态、wontfix 拒写，两条来源的单测与反向证明 | - | pending |
-| T02 | 03、triage-labels 文档与模板、使用合同措辞，发布包发版 | T01 | pending |
-| T03 | 全量验证、Codex 交叉审查、verification 与证据索引、重装与清理步骤 | T02 | pending |
-| T04 | 部署钩子 mark-deployed-issues.sh 同规则收口（R1 后负责人批准并入） | T01 | pending |
+| T01 | broker 终态写入清除 triage 状态、wontfix 拒写，两条来源的单测与反向证明 | - | done |
+| T02 | 03、triage-labels 文档与模板、使用合同措辞，发布包发版 | T01 | done |
+| T03 | 全量验证、Codex 交叉审查、verification 与证据索引、重装与清理步骤 | T02 | done |
+| T04 | 部署钩子 mark-deployed-issues.sh 同规则收口（R1 后负责人批准并入） | T01 | done |
 
 ## T01：broker 行为与单测
 
@@ -100,8 +100,11 @@ updated: 2026-11-15
 ## 执行证据
 
 <!-- execution-evidence:start -->
-尚未执行。实际记录 ticket_base、起始状态、provider/入口来源、验证结果、candidate_head、
-审查范围与 findings；可引用本 Issue 映射 verification，不另建证据权威。
+- provider claude，入口 superpowers `executing-plans`（`aisoft prepare-ticket 448 T01 --provider claude` 收据 `.superpowers/aisoft/448/T01.json`）。
+- T01：ticket_base `010035ee0333bafd444935b00037e00fecec7c1e`，起始工作树干净；新用例旧代码 13 子用例 RED，修复后两模块 206 PASS；commit `ddf5f7e1`。
+- T02：文档与发布包 1.24.1，`usage-bundle.sh --verify` VERIFIED；commit `a1fdb1af`。
+- T04（R1 后负责人批准并入）：新用例旧钩子 RED，修复后 PASS、`bash -n`/ShellCheck 干净；与 R1 修复同一 commit `1b7e553a`。
+- T03：smoke 两轮 rc=0（`a1fdb1af`、`1b7e553a`）；Codex 交叉审查 R1 `a1fdb1af` FAIL → R2 `1b7e553a` PASS。逐项见映射 verification。
 <!-- execution-evidence:end -->
 
 ## 部署与回滚
