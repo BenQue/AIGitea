@@ -376,13 +376,32 @@ class OperationsTest(ProjectSourceCase):
         """
         self.gitea.add_issue(9, "done", labels=("completed", "triage/bug", "triage/needs-triage"))
         self.gitea.add_issue(10, "declined", labels=("pr-open", "triage/wontfix"))
+        self.gitea.add_issue(11, "shipped", labels=("pr-open", "triage/enhancement",
+                                                    "triage/ready-for-agent"))
         broker = self.broker()
+
+        def puts(number):
+            return [url for method, url, _headers, _body in self.gitea.requests
+                    if method == "PUT" and url.endswith(f"/issues/{number}/labels")]
+
         value = broker.execute(None, "gitea.issue.labels.set", number=9, lifecycle="completed")
         self.assertEqual(value["result"], "updated")
         self.assertEqual({label["name"] for label in self.gitea.issues[9]["labels"]},
                          {"completed", "triage/bug"})
-        self.assertRefused("REQUEST_DENIED", lambda: broker.execute(
-            None, "gitea.issue.labels.set", number=10, lifecycle="completed"))
+        self.assertEqual(len(puts(9)), 1)
+        again = broker.execute(None, "gitea.issue.labels.set", number=9, lifecycle="completed")
+        self.assertEqual(again["result"], "no-op")
+        self.assertEqual(len(puts(9)), 1)
+
+        shipped = broker.execute(None, "gitea.issue.labels.set", number=11, lifecycle="deployed")
+        self.assertEqual(shipped["result"], "updated")
+        self.assertEqual({label["name"] for label in self.gitea.issues[11]["labels"]},
+                         {"deployed", "triage/enhancement"})
+
+        for terminal in ("completed", "deployed"):
+            self.assertRefused("REQUEST_DENIED", lambda: broker.execute(
+                None, "gitea.issue.labels.set", number=10, lifecycle=terminal))
+        self.assertEqual(puts(10), [])
         self.assertEqual({label["name"] for label in self.gitea.issues[10]["labels"]},
                          {"pr-open", "triage/wontfix"})
 

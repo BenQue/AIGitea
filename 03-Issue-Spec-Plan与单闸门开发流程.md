@@ -336,7 +336,7 @@ manual PR 第二确认都保持不变。并发 owner/HEAD/remote/main/输入来�
 
 `awaiting-triage` 只表示 AI 无法安全判级、内容冲突或合同不完整，阻止自动路由。`approved` 是合同完整后的运行控制信号，不是 spec 审批闸门，也不授权合并或部署。受控 wrapper 可以在合同完整时自动写入 `approved`，但会话开始实现前必须重新验证合同，不能只信任标签。
 
-Matt triage 另有两个正交维度：category 使用 `triage/bug` 或 `triage/enhancement`，state 使用 `triage/needs-triage`、`triage/needs-info`、`triage/ready-for-agent`、`triage/ready-for-human`、`triage/wontfix`。每个已 triage Issue 恰好一个 category 和一个 state，直到写入终态。`triage/ready-for-agent` 只允许 Agent 处理下一阶段，永远不替代 `approved`；`triage/wontfix` 关闭 Issue，但不得写入 `completed` 或 `deployed`。终态写入是 triage state 的收口点（#448）：`gitea.issue.labels.set` 写 `completed` 或 `deployed` 时在同一次写入里移除全部 triage state，category 保留；Issue 挂着 `triage/wontfix` 时终态写入拒绝，交人判断。已是终态却仍挂 state 的 Issue，重写它现有的终态即可修复。所有标签 mutation 通过同一个 projector，更新一个维度时保留其他维度和非受管标签。
+Matt triage 另有两个正交维度：category 使用 `triage/bug` 或 `triage/enhancement`，state 使用 `triage/needs-triage`、`triage/needs-info`、`triage/ready-for-agent`、`triage/ready-for-human`、`triage/wontfix`。每个已 triage Issue 恰好一个 category 和一个 state，直到写入终态。`triage/ready-for-agent` 只允许 Agent 处理下一阶段，永远不替代 `approved`；`triage/wontfix` 关闭 Issue，但不得写入 `completed` 或 `deployed`。终态写入是 triage state 的收口点（#448）：broker `gitea.issue.labels.set` 写 `completed` 或 `deployed`、部署钩子 `mark-deployed-issues.sh` 写 `deployed` 时，都在同一次写入里移除全部 triage state，category 保留；Issue 挂着 `triage/wontfix` 时 broker 拒绝、钩子跳过并告警，交人判断。已是终态却仍挂 state 的 Issue，重写它现有的终态即可修复。所有标签 mutation 通过同一个 projector，更新一个维度时保留其他维度和非受管标签。
 
 ## 5. 小变更路径
 

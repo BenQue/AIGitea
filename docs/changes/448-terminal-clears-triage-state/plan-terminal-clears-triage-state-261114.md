@@ -13,7 +13,7 @@ risk_flags:
 depends_on: []
 branch: change/448-terminal-clears-triage-state
 created: 2026-11-14
-updated: 2026-11-14
+updated: 2026-11-15
 ---
 
 # 终态写入清除 triage 状态标签 · 实施计划
@@ -32,6 +32,7 @@ updated: 2026-11-14
 | T01 | broker 终态写入清除 triage 状态、wontfix 拒写，两条来源的单测与反向证明 | - | pending |
 | T02 | 03、triage-labels 文档与模板、使用合同措辞，发布包发版 | T01 | pending |
 | T03 | 全量验证、Codex 交叉审查、verification 与证据索引、重装与清理步骤 | T02 | pending |
+| T04 | 部署钩子 mark-deployed-issues.sh 同规则收口（R1 后负责人批准并入） | T01 | pending |
 
 ## T01：broker 行为与单测
 
@@ -62,11 +63,22 @@ updated: 2026-11-14
 - **Expected**：全绿；交叉审查 PASS 或修复后 PASS。
 - **停止条件**：同全局。
 
+## T04：部署钩子同规则收口
+
+- **交付/范围**：`codex/tools/mark-deployed-issues.sh` 写 `deployed` 时移除 triage state、保留 category，遇 `triage/wontfix` 跳过并告警；`codex/tests/test-mark-deployed-issues.sh` 加用例；`02` §9 补一句。
+- **blocked_by**：T01
+- **AC**：AC-8
+- **接口/约束**：spec D6；钩子任何情况下退出码为 0，不把成功部署改判失败。
+- **验证**：新用例先在旧钩子上跑红；`bash codex/tests/test-mark-deployed-issues.sh`、`bash -n`、ShellCheck；随后重跑 smoke；R2 交叉审查。
+- **Expected**：旧钩子红在 triage state 仍在 PUT 里；新钩子全绿。
+- **停止条件**：同全局。
+
 ## Expected touch points
 
 - T01：`codex/runtime/aisoft_host_access/broker.py`、`codex/runtime/aisoft_host_access/contract.py`、`codex/runtime/tests/test_host_access.py`、`codex/runtime/tests/test_project_declared_source.py`
 - T02：`03-Issue-Spec-Plan与单闸门开发流程.md`、`docs/agents/triage-labels.md`、`templates/docs/agents/triage-labels.md`、`usage/CONTRACT.md`、`usage/bundle.json`
 - T03：本目录 verification、`docs/governance/review-evidence-index.md`
+- T04：`codex/tools/mark-deployed-issues.sh`、`codex/tests/test-mark-deployed-issues.sh`、`02-CI与自动部署流水线.md`
 
 ## 数据库迁移
 
@@ -83,6 +95,7 @@ updated: 2026-11-14
 | AC-5 | 反向证明记录 + 全量 unittest + smoke |
 | AC-6 | usage-bundle 校验 + 文档 diff review |
 | AC-7 | verification 中的命令与步骤；合并后 Issue 评论 |
+| AC-8 | T04：test-mark-deployed-issues.sh 新用例红→绿 |
 
 ## 执行证据
 
