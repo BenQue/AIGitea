@@ -105,7 +105,7 @@ pin 的版本，项目不得手改。Gitea 与 Git 访问经 §6 选定的来源
 | `claim-worktree --branch B` | 把 change worktree 绑定到本会话（`AISOFT_SESSION_ID`） |
 | `scan-worktrees` | 只读扫描 change worktree 是否被改写 |
 | `classify N`、`classify --apply N`、`classify --verify N` | 判级投影：计划（含路由行）、写入、读回 |
-| `complete --project ID --range R` / `--apply N…` | 合并后终态：先 dry-run，再按 pinned 编号写入 |
+| `complete --project ID --range R` / `--apply N…` | 合并后终态：先 dry-run，再按 pinned 编号写入；终态写入同时移除 triage state，挂 `triage/wontfix` 的 Issue 拒写 |
 | `project-check` | 对齐检查（见 §6） |
 | `bundle status` | 本仓与 pin 版本的核对结果 |
 | `version` | 自报 `bundle_version`、`bundle_digest` 与源 SHA |

@@ -149,10 +149,24 @@ while IFS= read -r issue_number; do
     failed=1
     continue
   fi
+  # deployed is terminal, so the triage state closes with it (#448), the same
+  # rule as the broker's gitea.issue.labels.set: every triage/ label except the
+  # two categories is dropped in this PUT. triage/wontfix never maps to deployed;
+  # the broker refuses it, but this hook must not fail a deployment that already
+  # succeeded, so it skips the Issue with a warning instead.
+  if printf '%s' "$issue" | jq -e 'any(.labels[]; .name == "triage/wontfix")' >/dev/null 2>&1; then
+    warn "Issue #$issue_number carries triage/wontfix, which never maps to deployed; left unchanged for a human decision"
+    failed=1
+    continue
+  fi
   ids="$(
     printf '%s' "$issue" |
       jq -c --argjson lifecycle "$lifecycle" --argjson deployed "$deployed_id" '
-        ([.labels[] | select((.name as $name | $lifecycle | index($name)) | not) | .id]
+        ([.labels[]
+          | select((.name as $name | $lifecycle | index($name)) | not)
+          | select((.name | startswith("triage/"))
+                   and .name != "triage/bug" and .name != "triage/enhancement" | not)
+          | .id]
          + [$deployed]) | unique
       '
   )"

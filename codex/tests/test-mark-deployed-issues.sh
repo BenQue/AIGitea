@@ -26,7 +26,11 @@ case "$url" in
     printf '%s\t%s\n' "$url" "$data" >>"$MOCK_ROOT/puts.log"
     ;;
   */issues/*)
-    printf '%s\n' '{"labels":[{"id":1,"name":"type/platform"},{"id":2,"name":"complexity/complex"},{"id":4,"name":"completed"},{"id":9,"name":"priority/high"}]}'
+    if [ -n "${MOCK_ISSUE:-}" ]; then
+      printf '%s\n' "$MOCK_ISSUE"
+    else
+      printf '%s\n' '{"labels":[{"id":1,"name":"type/platform"},{"id":2,"name":"complexity/complex"},{"id":4,"name":"completed"},{"id":9,"name":"priority/high"}]}'
+    fi
     ;;
   *) exit 22 ;;
 esac
@@ -181,6 +185,34 @@ if grep -Fq 'HEAD~9' "$TMP/argv.log"; then
   echo 'mark-deployed must not act on a range argument' >&2
   exit 1
 fi
+
+# --- Issue #448: a terminal write closes the triage state ---------------------
+#
+# deployed is a terminal state, so this hook follows the same rule as the
+# broker's gitea.issue.labels.set: every triage/ state label goes in the same
+# PUT, the two categories stay. An Issue carrying triage/wontfix is skipped with
+# a warning instead of refused loudly, because nothing here may fail a
+# deployment that already succeeded.
+printf '%s\n' 'Merge pull request 700' '' 'Closes #448' >"$TMP/message-448"
+export MERGE_MESSAGE_FILE="$TMP/message-448"
+export MOCK_ISSUE='{"labels":[{"id":1,"name":"type/platform"},{"id":21,"name":"triage/bug"},{"id":20,"name":"triage/needs-triage"},{"id":23,"name":"triage/ready-for-agent"},{"id":4,"name":"completed"},{"id":9,"name":"priority/high"}]}'
+triage_output="$(bash "$ROOT/codex/tools/mark-deployed-issues.sh" 2>&1)"
+grep -Fq 'marked deployed: #448' <<<"$triage_output"
+[ "$(tail -1 "$TMP/puts.log" | cut -f2)" = '{"labels":[1,9,21,50]}' ]
+
+export MOCK_ISSUE='{"labels":[{"id":1,"name":"type/platform"},{"id":22,"name":"triage/wontfix"},{"id":4,"name":"completed"}]}'
+puts_before="$(wc -l <"$TMP/puts.log" | tr -d ' ')"
+rc=0
+wontfix_output="$(bash "$ROOT/codex/tools/mark-deployed-issues.sh" 2>&1)" || rc=$?
+[ "$rc" -eq 0 ]
+grep -Fq 'Issue #448 carries triage/wontfix' <<<"$wontfix_output"
+grep -Fq 'deployment remains successful' <<<"$wontfix_output"
+[ "$(wc -l <"$TMP/puts.log" | tr -d ' ')" = "$puts_before" ]
+if grep -Fq 'marked deployed: #448' <<<"$wontfix_output"; then
+  echo 'a wontfix Issue must not be marked deployed' >&2
+  exit 1
+fi
+unset MOCK_ISSUE
 
 if grep -Fq "$FILE_TOKEN" "$TMP/argv.log" ||
   grep -Fq "$FILE_TOKEN" <<<"$file_output$perm_output"; then
