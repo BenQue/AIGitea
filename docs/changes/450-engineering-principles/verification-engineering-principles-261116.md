@@ -56,7 +56,14 @@ updated: 2026-11-16
 | patch apply --check / 候选摘要验证 | PASS（准备） | 仓库仅做 apply --check；临时副本应用后的全文摘要等于 spec，reverse --check 成功；仓库原则文件保持基线字节 |
 | classify --apply / --verify 450 | PASS（准备） | updated 后独立读回 result=projected，type/platform、complexity/complex；这是本地合同与 live 标签一致，不代表文档已推送或合并 |
 | Claude 交接合同复核 | PASS（准备） | resolve-route --provider claude 命中 R3 / D4，differences={}；文档与 plan 解析通过、两票均 pending、无执行回执；原则、bundle 和冻结 patch 均未改变 |
-| T01 治理应用与 bundle release | NOT RUN | 尚未开始 |
+| Claude 接管 worktree | PASS | 核对 branch / HEAD `4d4321de…` / 干净 / 原 owner `01a1deda-…` 与快照一致；`claim-worktree --takeover` 返回 taken-over，owner 改为 `f2cce2e4-3bb8-4160-87a4-9b9a1a5ee664`。会话实际为 Claude Opus 5.5，环境报告推理强度 medium，低于路由 frontier/max，如实记录 |
+| 接手后合同复核 | PASS | broker issue.read：open / approved、type/platform、complexity/complex，1 条评论；resolve-documents 四角色正确；resolve-route --provider claude 命中 R3 / D4，differences={}；check-change-documents 两项 PASS |
+| T01 prepare-ticket | PASS | status=prepared，ticket_base `4d4321dee233dc55116539f77799817595108167`，初始三类状态为空，receipt `.superpowers/aisoft/450/T01.json` |
+| T01 patch 应用与摘要 | PASS | 应用前原则 `07c78311…`、patch `81d82720…` 与 spec 一致；apply --check 通过后应用，全文 `3dda6096…1d9d1811` 等于 spec；reverse --check 成功；引言“不增加确认点、流程状态或验证硬门”保留 |
+| T01 bundle release 与 verify | PASS | broker git.fetch.main 后 origin/main 仍为 change_base，最新已发布 1.24.1，1.24.2 未占用；`--release 1.24.2 … --compatibility patch` 输出 RELEASED sha256:8db2e495…；`--verify --baseline-ref c14a86d4…` 输出 VERIFIED；members 与既有 releases 前缀、其他键均与基线相同，仅追加 1.24.2 |
+| T01 diff / 文档 / 范围检查 | PASS | `git diff --check` 无输出；check-change-documents 两项 PASS；治理提交 `9358cdf5aff69c12dccb3acb140dc49d0cbedff1` 仅含原则与 bundle |
+| T01 场景与反例文本审议 | PASS（实现方自审） | 四类关注点明写为提示、不要求每项任务执行四类验证；证据行区分独立运行 / 实现方结果 / 静态推导并保留未验证说明；学习条目保留归因与成本维度，结构优先为评估顺序。仅为实现方静态审议，不是独立审核 |
+| T01 治理 STOP | 已执行 | 治理提交后停止本运行，T01 完成判定与 T02 交 fresh run；本运行未执行 T02 任何步骤 |
 | T02 fresh run、完整 smoke、负向夹具、隔离三端导出 | NOT RUN | 尚未开始 |
 | 实际补丁最终 cross-provider 审核 | NOT RUN | 前述方案审核不能替代 |
 | 远端 required CI | NOT RUN | 未 push / PR |
