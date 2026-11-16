@@ -67,7 +67,9 @@ updated: 2026-11-16
 | fresh run 接管 | PASS | 新 Claude Code 会话 `b2a67dee-88df-4a7a-baa1-e1a2b5eb5a86`（Opus 5.5；本会话无法读取实际推理强度，记为未核实，路由要求 frontier/max）。核对 branch / HEAD `4efe9516…` / 工作树干净，重读交接文件、spec、plan、verification、治理 diff 与 issue-session-flow 技能；`claim-worktree --takeover` 返回 taken-over，owner 由 `f2cce2e4-…` 改为本会话 |
 | `prepare-ticket 450 T01 --provider claude --resume` | REFUSED（按设计） | 返回 resume identity/semantic contract mismatch。核对源码：plan semantic_hash 在三个提交均为 `3b445c7b…`，差异仅在 owner；runtime 规定未完成票的 resume 只限原 owner，继任者只能消费已完成依赖。经负责人在线程中授权继续，改为 fresh run 复跑 T01 检查、写入下方机器可读完成记录，再由 `prepare-ticket 450 T02` 的依赖校验判定 T01 |
 | T01 完成判定（fresh run 复跑） | PASS | 基线副本上 forward apply --check 通过（基线 `07c78311…`）；HEAD 上 reverse --check 通过、全文 `3dda6096…` 等于 spec；bundle `--verify` VERIFIED 1.24.2；31 条既有 release 字节前缀与 members 等非 release 键均同 change_base；`git diff --check c14a86d4..HEAD` 无输出；check-change-documents 两项 PASS。重读治理 diff，引言“不增加确认点、流程状态或验证硬门”保留，四类关注点为提示。记录中 AC 的 PASS 仅指 T01 负责的部分，AC-2/3/4 的独立审议由 T02 cross-provider 承担 |
-| T02 fresh run、完整 smoke、负向夹具、隔离三端导出 | NOT RUN | 尚未开始 |
+| T02 prepare-ticket | PASS | 完成记录提交 `97b5f2ee2fd72b24c77b717ebb40dc9cfdfcfa60` 后 `prepare-ticket 450 T02 --provider claude` 返回 status=prepared，T01 依赖校验通过，ticket_base `97b5f2ee…`，初始三类状态为空 |
+| `bash codex/tools/usage-bundle.sh --build <本票新建的隔离目录>` | PASS | 本会话 scratchpad 新建 `export-450-Utxz/out`，输出 BUILT 1.24.2 sha256:8db2e495…；`project/{.agents,.claude,.cursor}/skills/aisoft-platform/references/engineering-principles.md` 三份与源码 `cmp` 字节相同，SHA-256 均 `3dda6096…`。只是隔离导出，不是安装 |
+| 完整 smoke、负向夹具 | NOT RUN | 在 candidate_head 上运行，结果待记录（4efe9516 上的一次提前运行因 HEAD 移动被主动中止，不计） |
 | 实际补丁最终 cross-provider 审核 | NOT RUN | 前述方案审核不能替代 |
 | 远端 required CI | NOT RUN | 未 push / PR |
 | installed / 项目 adopt / live | NOT RUN | 不在本次范围 |
