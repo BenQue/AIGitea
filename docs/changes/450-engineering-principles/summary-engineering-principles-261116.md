@@ -31,7 +31,7 @@ route:
   review: cross-provider
   confirm: 2
 confidence: high
-override_reason: ''
+override_reason: '负责人 2026-11-16 在本票线程裁决执行强度偏离路由 effort max。T01 由会话 f2cce2e4 以 medium 执行，按实保留并经负责人认可。T02 负责人称已把当前会话调为 xhigh 并认为足够、不需要 max，会话元数据 15:24 读回仍为 medium，实际强度未核实。路由卡其余各格不变。'
 depends_on: []
 status: approved
 branch: change/450-engineering-principles
@@ -63,7 +63,7 @@ required_docs:
   - plan
   - verification
 confidence: high
-override_reason: ''
+override_reason: '负责人 2026-11-16 在本票线程裁决执行强度偏离路由 effort max。T01 由会话 f2cce2e4 以 medium 执行，按实保留并经负责人认可。T02 负责人称已把当前会话调为 xhigh 并认为足够、不需要 max，会话元数据 15:24 读回仍为 medium，实际强度未核实。路由卡其余各格不变。'
 ```
 
 ### 判级证据
