@@ -95,6 +95,7 @@ updated: 2026-11-16
 
 <!-- execution-evidence:start -->
 2026-11-16：只完成合同准备。T01、T02 未开始；ticket_base、治理 candidate_head、正式 smoke、隔离 build 与实际补丁交叉审查均 NOT RUN。准备阶段的只读核对与一次性副本预演见映射 verification，预演不是本票的执行证据。
+2026-11-16：负责人在本票线程回复「确认」，合同获批。summary 记为 approved（提交 `443d8983f5b0c88c48c034b4f1286a651e3e0984`），Issue 生命周期标签经 broker 由 `needs-analysis` 改为 `approved`。会话 `0a9bf32d-69b7-4d4e-a676-2bc1eb8df9ed` 运行 `prepare-ticket 451 T01 --provider claude`，回执 status=prepared，ticket_base `443d8983f5b0c88c48c034b4f1286a651e3e0984`，起始 staged、unstaged、untracked 均空。钉子先红、冻结补丁精确应用、钉子转绿并做删短语反证、bundle 追加 1.25.0；治理提交 `3f4b6a6282bdd653fad18b54c9484cc2f1f45081` 只含四份技能文件、测试文件与 bundle，随后 STOP。T01 状态保持 pending：真实完成判定由 fresh run 以 `--resume` 恢复后补齐；T02 未开始。逐条结果见映射 verification。
 <!-- execution-evidence:end -->
 
 ## 部署与回滚

@@ -21,10 +21,11 @@ updated: 2026-11-16
 
 ## 基线与范围
 
-- Commit SHA：尚无实现提交。合同准备阶段的候选只存在于冻结补丁。
+- Commit SHA：T01 治理提交 `3f4b6a6282bdd653fad18b54c9484cc2f1f45081`；ticket_base `443d8983f5b0c88c48c034b4f1286a651e3e0984`；change_base `c14a86d4ad0d1fd5938ab31343f8d72acd486a71`。
 - 基线：`origin/main` = `c14a86d4ad0d1fd5938ab31343f8d72acd486a71`（2026-11-16 broker `git.fetch.main` 返回 PASS 后读取）。
 - 环境：Mac 平台检出 `/Users/benque/MyDocs/AISoftPlatform`；change worktree `/private/tmp/issue-451-coordination-workspace`。
-- 本记录负责证明的 acceptance criteria：AC-1 至 AC-8。当前全部未执行。
+- 本记录负责证明的 acceptance criteria：AC-1 至 AC-8。T01 已执行到治理 STOP，完成判定与 T02 待 fresh run。
+- 执行会话：Claude Code，会话元数据读回 model `claude-opus-5-5`、effort `medium`（路由为 max，偏离已记入 summary `override_reason`，待负责人裁决）。实际加载的 superpowers 插件路径为 7.0.2，平台 pin 为 7.0.0；`executing-plans` 由该插件提供，Txx 仍是唯一合同。
 
 ## 准备阶段记录（不是实施验收）
 
@@ -55,10 +56,17 @@ updated: 2026-11-16
 
 | Command / check | Result | Evidence |
 |---|---|---|
-| T01 钉子先红 | NOT RUN | 待执行 |
-| T01 应用冻结补丁与全文 SHA-256 | NOT RUN | 待执行 |
-| T01 钉子转绿与删短语反证 | NOT RUN | 待执行 |
-| T01 `usage-bundle.sh --release` 与 `--verify` | NOT RUN | 待执行 |
+| `prepare-ticket 451 T01 --provider claude` | prepared | ticket_base `443d8983…`，起始状态为空，回执 `.superpowers/aisoft/451/T01.json` |
+| T01 钉子先红：写入两个新用例后、应用补丁前运行 `python3 -m unittest tests.test_session_contract` | 按预期失败 | `Ran 15 tests`，`FAILED (failures=2)`，失败的是 `test_coordination_workspace_grants_no_access_and_stays_read_only` 与 `test_adoption_entry_points_follow_adr_0003`，原有 13 个通过 |
+| T01 `git apply --check` 后应用冻结补丁 | 通过 | 补丁 SHA-256 `d2352ae8…a7c3` 与 spec 一致；应用前四份文件 SHA-256 等于 spec 基线值，应用后等于 spec 固定值 |
+| T01 `git apply --reverse --check` | 通过 | 同一补丁可反向匹配 |
+| T01 钉子转绿 | 通过 | `Ran 15 tests`，`OK` |
+| T01 删短语反证 | 按预期失败后还原 | 临时删掉「不授予任何访问权」、「对其他项目缺省只读」各一次，`test_coordination_workspace…` 失败；删掉「它的项目目录不是第三种访问来源」，`test_adoption_entry_points…` 失败。每次还原后四份文件 SHA-256 回到固定值。「待建票」一条没有手工删，由用例内的 mutation 断言覆盖 |
+| T01 `usage-bundle.sh --release 1.25.0 --today 2026-11-16 --compatibility minor` | 通过 | 发布前 broker `git.fetch.main` 读回 `origin/main` 仍为 `c14a86d4…`，最新版本 1.24.1；`RELEASED 1.25.0 sha256:8e0e15405bb6adac945943e7bc267bcd57c20659e8c25e6900e1b284421e43c8` |
+| T01 `usage-bundle.sh --verify --baseline-ref c14a86d4…` | 通过 | `VERIFIED 1.25.0`，摘要同上；成员集合与基线相同，既有 31 个 release 前缀不变，只多 1 个 |
+| T01 `python3 -B codex/tests/check-project-leak.py` | 通过 | `PASS: project-leak (4 baseline files, 12 hits; site 7 files, 29 hits)` |
+| T01 `git diff --check` 与 `check-change-documents --porcelain` | 通过 | 无空白错误；`change-documents PASS`、`change-pr-url PASS` |
+| T01 场景与反例审议 | 已做 | spec 七个场景逐条对到新小节的角色、远端写入、任务书、版本不一致、依赖、缺席与恢复、不授权各条，没有发现文字允许被排除的误读。这是作者自审，不是独立审查 |
 | T02 完整 smoke | NOT RUN | 待执行 |
 | T02 隔离 build 三端字节比对 | NOT RUN | 待执行 |
 | T02 `classify --apply` 与 `--verify` | NOT RUN | 待执行 |
