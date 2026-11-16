@@ -31,7 +31,7 @@ route:
   review: cross-provider
   confirm: 2
 confidence: high
-override_reason: '负责人 2026-11-16 在本票线程裁决执行强度偏离路由 effort max。T01 由会话 f2cce2e4 以 medium 执行，按实保留并经负责人认可。T02 负责人称已把当前会话调为 xhigh 并认为足够、不需要 max，会话元数据 15:24 读回仍为 medium，实际强度未核实。路由卡其余各格不变。'
+override_reason: '负责人 2026-11-16 在本票线程处置执行强度偏离路由 effort max。历史偏差：T01 由会话 f2cce2e4 以 medium 执行；实现方给出的推荐选项写明该事实照实保留并在本字段记为经负责人认可，负责人回复“推荐”选择该选项。后续覆盖：负责人原话“我已经将模型调整为 xhigh，我认为已经足够，不需要 max”，并称修改的是当前会话；会话元数据 15:23 与 15:24 读回仍为 medium，T02 实际强度未核实。路由卡各格不变。'
 depends_on: []
 status: approved
 branch: change/450-engineering-principles
@@ -63,7 +63,7 @@ required_docs:
   - plan
   - verification
 confidence: high
-override_reason: '负责人 2026-11-16 在本票线程裁决执行强度偏离路由 effort max。T01 由会话 f2cce2e4 以 medium 执行，按实保留并经负责人认可。T02 负责人称已把当前会话调为 xhigh 并认为足够、不需要 max，会话元数据 15:24 读回仍为 medium，实际强度未核实。路由卡其余各格不变。'
+override_reason: '负责人 2026-11-16 在本票线程处置执行强度偏离路由 effort max。历史偏差：T01 由会话 f2cce2e4 以 medium 执行；实现方给出的推荐选项写明该事实照实保留并在本字段记为经负责人认可，负责人回复“推荐”选择该选项。后续覆盖：负责人原话“我已经将模型调整为 xhigh，我认为已经足够，不需要 max”，并称修改的是当前会话；会话元数据 15:23 与 15:24 读回仍为 medium，T02 实际强度未核实。路由卡各格不变。'
 ```
 
 ### 判级证据

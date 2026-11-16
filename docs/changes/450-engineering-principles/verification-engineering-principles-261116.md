@@ -70,9 +70,9 @@ updated: 2026-11-16
 | T02 prepare-ticket | PASS | 完成记录提交 `97b5f2ee2fd72b24c77b717ebb40dc9cfdfcfa60` 后 `prepare-ticket 450 T02 --provider claude` 返回 status=prepared，T01 依赖校验通过，ticket_base `97b5f2ee…`，初始三类状态为空 |
 | `bash codex/tools/usage-bundle.sh --build <本票新建的隔离目录>` | PASS | 本会话 scratchpad 新建 `export-450-Utxz/out`，输出 BUILT 1.24.2 sha256:8db2e495…；`project/{.agents,.claude,.cursor}/skills/aisoft-platform/references/engineering-principles.md` 三份与源码 `cmp` 字节相同，SHA-256 均 `3dda6096…`。只是隔离导出，不是安装 |
 | `AISOFT_USAGE_BASELINE_REF=c14a86d4ad0d1fd5938ab31343f8d72acd486a71 LC_ALL=C bash codex/tests/smoke.sh` | PASS | 在 `db32606ed67317dc35bbaa30c5fcb5e005a54a4f` 上 rc=0，末行 “Codex platform static smoke checks passed.”，日志 1134 行（本会话 scratchpad `smoke-db32606e.log`，sha256 `2d703055…`），无 FAIL/ERROR 行。其中 `usage-bundle.sh --verify` 与 `test-usage-bundle: PASS` 已执行，后者含重复发版拒绝、历史改写检测、`--baseline-ref` 已发布版本不可变及成员摘要漂移拒绝等负向夹具。日志另有一行 “test-aisoft-entry: platform checkout denied by sandbox-exec”，属该测试的环境说明，未计入通过项。4efe9516 上的一次提前运行因 HEAD 移动被主动中止，不计 |
-| 推理强度偏离的负责人裁决 | 已记录 | R1 P2 后，负责人在本票线程选择“切换到更高强度继续”，随后裁定 xhigh 足够、不需要 max，并说明已调整当前会话。本会话 15:23 与 15:24 两次用 `get_session self` 读回 effort 仍为 medium，T02 实际强度因此记为未核实。裁决与该事实写入 summary `override_reason`（front matter 与判级块两处）；路由卡未改，`resolve-route 450 --provider claude` differences={}，`check-change-documents` 两项 PASS，`classify --verify 450` 仍为 projected，`prepare-ticket 450 T02 --resume` 仍为 prepared |
+| 推理强度偏离的负责人裁决 | 已记录 | R1 P2 后，实现方在本票线程给出两个选项，推荐项写明“切到更高强度继续，T01 跑在 medium 的事实照实保留，并在 override_reason 里写明 T01 以 medium 执行、经负责人认可”，负责人回复“推荐”选择该项；随后原话“我已经将模型调整为 xhigh，我认为已经足够，不需要 max”，并说明修改的是当前会话。本会话 15:23 与 15:24 两次用 `get_session self` 读回 effort 仍为 medium，T02 实际强度因此记为未核实。裁决与该事实写入 summary `override_reason`（front matter 与判级块两处）；路由卡未改，`resolve-route 450 --provider claude` differences={}，`check-change-documents` 两项 PASS，`classify --verify 450` 仍为 projected，`prepare-ticket 450 T02 --resume` 仍为 prepared |
 | `bash codex/tools/aisoft classify --apply 450` / `--verify 450` | PASS | apply 返回 result=no-op（标签已是 platform / complex）；独立 verify 返回 result=projected |
-| 实际补丁最终 cross-provider 审核 | NOT RUN | 前述方案审核不能替代 |
+| 实际补丁最终 cross-provider 审核 | R1、R2 已执行均 FAIL，最新 HEAD 复审待完成 | 见交叉审查表；前述方案审核不能替代 |
 | 远端 required CI | NOT RUN | 未 push / PR |
 | installed / 项目 adopt / live | NOT RUN | 不在本次范围 |
 
@@ -212,6 +212,7 @@ updated: 2026-11-16
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
 | R1 | Claude Code（T01 `f2cce2e4-…`，fresh run `b2a67dee-…`，均 Opus 5.5 / medium） | Codex，Herdr 空间「AISoftPlatform #450 实施审核」terminal `t41`，`codex -m gpt-6-astra -c model_reasoning_effort="high" -s read-only -a never`，状态栏显示 GPT-6-Astra high；`hc wait` 返回 ended / done / turn 1 | BASE `c14a86d4…` .. HEAD `db32606ed67317dc35bbaa30c5fcb5e005a54a4f` | FAIL | P2：实施推理强度 medium 低于路由 max，summary `override_reason` 为空；已由负责人裁决并写入 override_reason，见执行结果。P3：本文件准备期表述与现状矛盾，已在后续提交修正。AC-1..5 判 PASS（AC-5 导出部分为实现方结果），AC-6 未完成；审核者未写文件 |
+| R2 | 同 R1 | 同一 Herdr terminal `t41` 以 `hc send` 复用只读会话，`hc wait` 返回 ended / done / turn 2 | 增量 `db32606e..540ae18fe7afd74dc945c7c664b1ad9f9f00bb18` 及整批 `c14a86d4..540ae18f` | FAIL | P2：override_reason 中“T01 medium 经负责人认可”被认为缺少引用的裁决原文；处置为补引推荐选项原文与负责人“推荐”的选择，并把历史偏差与后续 xhigh 覆盖分开写。P3：执行表仍写最终审核 NOT RUN，已改为 R1 / R2 已执行 FAIL。R1 的 P3 判为基本闭合；原则、bundle、范围复核通过；审核者未写文件 |
 
 ## 遗留风险与未完成项
 
