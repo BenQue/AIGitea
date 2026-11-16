@@ -38,7 +38,9 @@ updated: 2026-11-16
 - 2026-11-16 负责人明确：“同意，按收敛后的方案继续推进 #450，先补齐 spec 和 plan，语义改动只落在共享工程原则中。”本轮先完成合同；不因补文档自动应用治理 patch。
 - 合同完整、文档预检 OK 后沿用上述同意推进本 Issue，不重复询问已确定的范围。最终 PR 仍按 confirm: 2，merge、安装、项目采用与部署不在此授权内。
 - fresh broker fetch 后 `origin/main` 与本地主干均为 `c14a86d4ad0d1fd5938ab31343f8d72acd486a71`，作为 change_base。基线工作区干净。
-- exact branch：`change/450-engineering-principles`；worktree：`/private/tmp/issue-450-engineering-principles`；唯一写者：Codex 会话 `01a1deda-7dba-7d80-8ce7-703794ceee24`。
+- exact branch：`change/450-engineering-principles`；worktree：`/private/tmp/issue-450-engineering-principles`。准备阶段唯一写者为 Codex 会话 `01a1deda-7dba-7d80-8ce7-703794ceee24`。
+- 2026-11-16 负责人随后指定具体开发交给 Claude Code。Codex 完成交接文档提交后停止写入并交回本 worktree；Claude 接手时核对交接 HEAD、干净状态和原 owner，使用自己的真实会话标识通过 `claim-worktree --takeover` 接管，记录回执。不得冒用原 Codex session 或手改 owner 文件；同一时刻仍只有一个写者。
+- 实施 provider 改为 claude，使用现有 superpowers executing-plans / verification-before-completion 映射；最终 actual-head 交叉审核由未参与实现的独立 Codex 负责。此为负责人指定的执行方切换，不改变冻结文案、git_scope、AC、两个确认点或安装 / 部署边界。
 - 无硬前置；#451 只是关联讨论，不依赖 Home Repo，也不修改其合同。
 
 ## 范围与非范围

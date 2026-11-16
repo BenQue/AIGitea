@@ -20,12 +20,12 @@ documents:
   spec: spec-engineering-principles-261116.md
   plan: plan-engineering-principles-261116.md
   verification: verification-engineering-principles-261116.md
-route_provider: codex
+route_provider: claude
 route:
   process: complex-production
   tier: frontier
   effort: max
-  skills: to-spec, to-tickets, implement, issue-session-flow
+  skills: to-spec, to-tickets, executing-plans, verification-before-completion
   method: spec-plan
   verify: full+reverse-proof
   review: cross-provider
@@ -68,7 +68,7 @@ override_reason: ''
 
 ### 判级证据
 
-- 现行 AGENTS.md 与 classification.py 将 Agent / 平台治理列为强制 complex；仓库 change_control 缺省 production，显式 provider 为 codex，命中 R3 / D4。
+- 现行 AGENTS.md 与 classification.py 将 Agent / 平台治理列为强制 complex；仓库 change_control 缺省 production。负责人在合同准备完成后指定 Claude Code 接手实施，显式 provider 已同步为 claude，仍命中 R3 / D4。
 - verification 承载独立审核、治理停止与 fresh run 的一次性证据以及隔离导出观察；它不代表部署义务。
 
 ### 缺失的 acceptance criteria 或决策

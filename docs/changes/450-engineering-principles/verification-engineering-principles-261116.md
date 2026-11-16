@@ -34,6 +34,13 @@ updated: 2026-11-16
 - 本机完整原始产物目录：`/Users/benque/.codex/visualizations/2026/11/15/01a1deda-7dba-7d80-8ce7-703794ceee24/issue-450-review-261116/`。其中 proposal-v2 SHA-256 与报告摘要由 review-metadata.json 保存；正式候选以本票冻结 patch 为准。
 - 主会话读完用户提供的 Notion 文章九节，Claude 仅读主会话归纳；未独立观看视频或核验数据，pstack 未安装或实跑。私有产物不是安装、CI、live 或长期效果证据。
 
+## Claude Code 实施交接
+
+- 负责人指定具体开发转交 Claude Code。首次文档提交为 `7f8360f57bdb6577a6a46b85d4728e01214913e3`；其后的交接提交只同步本票四份映射文档，不应用原则 patch 或变更 bundle。
+- 原写者 Codex `01a1deda-7dba-7d80-8ce7-703794ceee24` 完成交接提交后停止写入并交回 worktree。owner 标记在实际接手前仍保留原值；接手方应以自己的 session 调用 `claim-worktree --takeover` 并记录回执，不能把“已准备交接”写成“新 owner 已认领”。
+- 显式 provider 改为 claude，执行映射为 executing-plans / verification-before-completion；最终独立审核方改为未参与实现的 Codex。R3 / D4、全部 AC、冻结候选、scope 和权限边界不变。
+- T01 / T02 仍 pending，尚未调用 prepare-ticket，也未启动任何开发代理。后续按新 provider 创建开始回执；不把旧文档准备检查视为新执行回执。
+
 ## 执行结果
 
 | Command / check | Result | Evidence |
@@ -48,6 +55,7 @@ updated: 2026-11-16
 | plan 语义解析与 bounded publisher | PASS（准备） | parse_plan 识别 T01 无前置、T02 依赖 T01，均 pending 且引用 AC-1 至 AC-6；本地 publish_spec / publish_plan 只校验并写既有映射文件，不调用 direct Gitea client |
 | patch apply --check / 候选摘要验证 | PASS（准备） | 仓库仅做 apply --check；临时副本应用后的全文摘要等于 spec，reverse --check 成功；仓库原则文件保持基线字节 |
 | classify --apply / --verify 450 | PASS（准备） | updated 后独立读回 result=projected，type/platform、complexity/complex；这是本地合同与 live 标签一致，不代表文档已推送或合并 |
+| Claude 交接合同复核 | PASS（准备） | resolve-route --provider claude 命中 R3 / D4，differences={}；文档与 plan 解析通过、两票均 pending、无执行回执；原则、bundle 和冻结 patch 均未改变 |
 | T01 治理应用与 bundle release | NOT RUN | 尚未开始 |
 | T02 fresh run、完整 smoke、负向夹具、隔离三端导出 | NOT RUN | 尚未开始 |
 | 实际补丁最终 cross-provider 审核 | NOT RUN | 前述方案审核不能替代 |
@@ -71,7 +79,7 @@ updated: 2026-11-16
 
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
-| 待执行 | Codex | Claude（Herdr 可见独立审核） | 待执行时固定 | NOT RUN | 无实际补丁候选 |
+| 待执行 | Claude Code | Codex（Herdr 可见独立审核） | 待执行时固定 | NOT RUN | 无实际补丁候选 |
 
 ## 遗留风险与未完成项
 
