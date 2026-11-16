@@ -51,7 +51,7 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 - 项目自声明来源：`.aisoft/project.json` 把检出绑定到 exact 仓库与项目身份。
 - 站点来源：broker manifest 的 `projects[]` 把一个项目 id 绑定到 exact 仓库、project agent 与 Mac checkout。
 
-不要从别的项目或示例推断目标仓库，也不要让两个项目共用 worktree。
+不要从别的项目或示例推断目标仓库，也不要让两个项目共用 worktree。组织的跨项目协调工作区（`issue-session-flow`「跨项目协调工作区（可选）」）只作导航与交接，它的项目目录不是第三种访问来源。
 
 采用通用流程不需要平台登记（ADR 0003）。项目选用站点加固访问时，才把仓库登记进严格的 `codex/config/gitea-governance.json`（Issue #35 governance 合同已生效）。登记流程是：校验 manifest，为一个 exact 仓库引导非 site-admin 的平台 manager，只读跑 governance `check`，再用 manifest 声明的 project agent apply 这一个仓库。未知仓库只报告；不从发现结果推断可见性、归属或权限。
 

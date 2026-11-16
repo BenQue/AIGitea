@@ -19,6 +19,7 @@ class SessionContractTests(unittest.TestCase):
     CONFIRM_1 = "## 确认点 1：合同/启动"
     CONFIRM_2 = "## 确认点 2：准备提交最终 PR"
     COMPLETION = "## 收尾（人确认已合并后执行）"
+    COORDINATION = "## 跨项目协调工作区（可选）"
 
     def test_session_flow_keeps_only_contract_start_and_pr_confirmations(self):
         content = self._source(self.SESSION_FLOW)
@@ -172,6 +173,16 @@ class SessionContractTests(unittest.TestCase):
             "`scan-worktrees --repo <checkout>` 只读盘点",
         )
 
+    def _assert_coordination_workspace(self, content):
+        # #451: an optional coordination workspace is a legal place to coordinate,
+        # never an access source, a second dispatcher or a writer for other projects.
+        self._require(
+            self._section(content, self.COORDINATION),
+            "不授予任何访问权",
+            "对其他项目缺省只读",
+            "目标还没有 Issue 时写「待建票」，不编造编号",
+        )
+
     def _assert_rejects_mutations(self, validator, content, mutations):
         for rule, replacement in mutations:
             with self.subTest(rule=rule, replacement=replacement):
@@ -277,6 +288,30 @@ class SessionContractTests(unittest.TestCase):
                 ("SHA 相等，任何不匹配立即停止", "SHA 可不同，继续创建 PR"),
             ),
         )
+
+
+    def test_coordination_workspace_grants_no_access_and_stays_read_only(self):
+        content = self._source(self.SESSION_FLOW)
+        self._assert_coordination_workspace(content)
+        self._assert_rejects_mutations(
+            self._assert_coordination_workspace,
+            content,
+            (
+                ("不授予任何访问权", "授予目录内项目的访问权"),
+                ("对其他项目缺省只读", "对其他项目缺省可写"),
+                ("目标还没有 Issue 时写「待建票」，不编造编号", "目标还没有 Issue 时先填一个编号"),
+            ),
+        )
+
+    def test_adoption_entry_points_follow_adr_0003(self):
+        # #451: adoption needs no platform registration (ADR 0003).
+        self.assertNotIn(
+            "已登记、已采用", self._source("skills/aisoft-platform/references/greenfield-planning.md")
+        )
+        self.assertNotIn(
+            "exact manifest project, protected", self._source("skills/aisoft-matt-workflow/SKILL.md")
+        )
+        self._require(self._source(self.PLATFORM), "它的项目目录不是第三种访问来源")
 
 
 if __name__ == "__main__":
