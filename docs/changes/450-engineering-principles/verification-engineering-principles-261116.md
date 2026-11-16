@@ -215,10 +215,11 @@ updated: 2026-11-16
 | R1 | Claude Code（T01 `f2cce2e4-…`，fresh run `b2a67dee-…`，均 Opus 5.5 / medium） | Codex，Herdr 空间「AISoftPlatform #450 实施审核」terminal `t41`，`codex -m gpt-6-astra -c model_reasoning_effort="high" -s read-only -a never`，状态栏显示 GPT-6-Astra high；`hc wait` 返回 ended / done / turn 1 | BASE `c14a86d4…` .. HEAD `db32606ed67317dc35bbaa30c5fcb5e005a54a4f` | FAIL | P2：实施推理强度 medium 低于路由 max，summary `override_reason` 为空；已由负责人裁决并写入 override_reason，见执行结果。P3：本文件准备期表述与现状矛盾，已在后续提交修正。AC-1..5 判 PASS（AC-5 导出部分为实现方结果），AC-6 未完成；审核者未写文件 |
 | R2 | 同 R1 | 同一 Herdr terminal `t41` 以 `hc send` 复用只读会话，`hc wait` 返回 ended / done / turn 2 | 增量 `db32606e..540ae18fe7afd74dc945c7c664b1ad9f9f00bb18` 及整批 `c14a86d4..540ae18f` | FAIL | P2：override_reason 中“T01 medium 经负责人认可”被认为缺少引用的裁决原文；处置为补引推荐选项原文与负责人“推荐”的选择，并把历史偏差与后续 xhigh 覆盖分开写。P3：执行表仍写最终审核 NOT RUN，已改为 R1 / R2 已执行 FAIL。R1 的 P3 判为基本闭合；原则、bundle、范围复核通过；审核者未写文件 |
 | R3 | 同 R1 | 同一 terminal `t41`，`hc wait` 返回 ended / done / turn 3 | 增量 `540ae18f..5c62da93751b3747c872bfb70bae2d48992b70fd` 及整批 `c14a86d4..5c62da93` | PASS | R2 的 P2 判为闭合（推荐选项原文与负责人“推荐”构成直接依据，历史偏差与 xhigh 覆盖分开记录，未把 T02 强度写成已核实）；P3 闭合。新提 1 条非阻断 P3：AC-6 与遗留项仍写“待 R2”，已在本证据提交改正。原则、bundle、范围复核通过；审核者未写文件，报告称无法直接看到自身型号与强度 |
+| R4 | 同 R1 | 同一 terminal `t41`，`hc wait` 返回 ended / done / turn 4 | 证据增量 `5c62da93..8780792d630c3c77cbbd7c8cd54e40cc31b13b98` 及整批 | FAIL | P2：plan 把 T02 标 done 却无机器可读完成记录，离线 `completed()` 复现 “T02: completion requires commit and validation evidence”。处置：T02 改回 in-progress，执行证据行写明原因。其余记录判为准确，原则、bundle、范围复核通过 |
 
 ## 遗留风险与未完成项
 
-- T01、T02 本地部分已完成，停在确认点 2（AWAITING_PR_CONFIRMATION）；push、PR、远端 required CI `CI / verify (pull_request)`、人工合并均未发生。T02 本会话实际推理强度未能读回为 xhigh，如实保留。
+- T01 已完成；T02 本地候选已形成（plan 状态 in-progress），停在确认点 2（AWAITING_PR_CONFIRMATION）；push、PR、远端 required CI `CI / verify (pull_request)`、人工合并均未发生。T02 本会话实际推理强度未能读回为 xhigh，如实保留。
 - 验证与来源限制、安装 / 采用边界见 spec；任何未运行项保持 NOT RUN。
 - 治理应用后的 fresh run 已由新会话 `b2a67dee-…` 执行。runtime 依赖校验只证明记录、摘要、身份与提交关系一致，不能独立证明历史命令确实执行。
 - Matt triage 标签未投影：当前安装的 broker 仅提供 lifecycle / classification / project-extension 标签写入，没有 triage 维度写入操作。本次不绕过 typed 边界或升级 broker；不得声称已写入 triage/ready-for-agent。该限制不影响已完成的本地文档与现行路由预检。
