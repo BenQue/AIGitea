@@ -34,7 +34,7 @@ updated: 2026-11-16
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 将冻结原则文案和同字节使用包登记形成可回退的治理候选，受控提交后停止 | - | done |
-| T02 | fresh run 完成候选验证、隔离分发、独立审核及证据，形成最终 PR 候选 | T01 | pending |
+| T02 | fresh run 完成候选验证、隔离分发、独立审核及证据，形成最终 PR 候选 | T01 | done |
 
 ## T01：受控应用原则文案与发布登记
 
@@ -94,6 +94,7 @@ updated: 2026-11-16
 2026-11-16：负责人指定后续开发交给 Claude Code；在任何 prepare-ticket / 实施之前同步 provider、技能映射及独立审查方。尚无旧执行回执需要 resume，不得冒用原 Codex writer；接手回执由新会话记录。
 2026-11-16：Claude Code 会话 `f2cce2e4-3bb8-4160-87a4-9b9a1a5ee664` 以 `claim-worktree --takeover` 接管（result=taken-over），`prepare-ticket 450 T01 --provider claude` 回执 status=prepared、ticket_base `4d4321dee233dc55116539f77799817595108167`、初始 staged / unstaged / untracked 均空。冻结 patch 精确应用、bundle 追加 1.24.2；治理提交 `9358cdf5aff69c12dccb3acb140dc49d0cbedff1` 只含原则与 bundle 两个文件，随后 STOP。T01 状态保持 pending：真实完成判定由 fresh run 以 `--resume` 恢复后补齐；T02 未开始。
 2026-11-16：fresh run 会话 `b2a67dee-88df-4a7a-baa1-e1a2b5eb5a86` 以 `claim-worktree --takeover` 接管；`--resume` 因 owner 变化按设计拒绝，经负责人授权继续，复核原执行证据并重跑可只读复现的 T01 检查并在 verification 写入机器可读完成记录（BASE `4d4321de…`，HEAD `4efe9516…`），T01 标记 done，再以 T02 的依赖校验确认。
+2026-11-16：T02 由同一 fresh run 完成：完整 smoke PASS、三端隔离导出字节一致、classify 读回 projected；Codex R1 / R2 FAIL 经处置后 R3 PASS（`5c62da93…`）。T02 标 done 指本地候选已形成并停在确认点 2；无后续票消费 T02，未写机器可读完成记录。
 <!-- execution-evidence:end -->
 
 ## 部署与回滚

@@ -71,8 +71,9 @@ updated: 2026-11-16
 | `bash codex/tools/usage-bundle.sh --build <本票新建的隔离目录>` | PASS | 本会话 scratchpad 新建 `export-450-Utxz/out`，输出 BUILT 1.24.2 sha256:8db2e495…；`project/{.agents,.claude,.cursor}/skills/aisoft-platform/references/engineering-principles.md` 三份与源码 `cmp` 字节相同，SHA-256 均 `3dda6096…`。只是隔离导出，不是安装 |
 | `AISOFT_USAGE_BASELINE_REF=c14a86d4ad0d1fd5938ab31343f8d72acd486a71 LC_ALL=C bash codex/tests/smoke.sh` | PASS | 在 `db32606ed67317dc35bbaa30c5fcb5e005a54a4f` 上 rc=0，末行 “Codex platform static smoke checks passed.”，日志 1134 行（本会话 scratchpad `smoke-db32606e.log`，sha256 `2d703055…`），无 FAIL/ERROR 行。其中 `usage-bundle.sh --verify` 与 `test-usage-bundle: PASS` 已执行，后者含重复发版拒绝、历史改写检测、`--baseline-ref` 已发布版本不可变及成员摘要漂移拒绝等负向夹具。日志另有一行 “test-aisoft-entry: platform checkout denied by sandbox-exec”，属该测试的环境说明，未计入通过项。4efe9516 上的一次提前运行因 HEAD 移动被主动中止，不计 |
 | 推理强度偏离的负责人裁决 | 已记录 | R1 P2 后，实现方在本票线程给出两个选项，推荐项写明“切到更高强度继续，T01 跑在 medium 的事实照实保留，并在 override_reason 里写明 T01 以 medium 执行、经负责人认可”，负责人回复“推荐”选择该项；随后原话“我已经将模型调整为 xhigh，我认为已经足够，不需要 max”，并说明修改的是当前会话。本会话 15:23 与 15:24 两次用 `get_session self` 读回 effort 仍为 medium，T02 实际强度因此记为未核实。裁决与该事实写入 summary `override_reason`（front matter 与判级块两处）；路由卡未改，`resolve-route 450 --provider claude` differences={}，`check-change-documents` 两项 PASS，`classify --verify 450` 仍为 projected，`prepare-ticket 450 T02 --resume` 仍为 prepared |
+| 完整 smoke（最新候选） | PASS | 同一命令在 `5c62da93751b3747c872bfb70bae2d48992b70fd` 上 rc=0，末行 “Codex platform static smoke checks passed.”，日志 1134 行（scratchpad `smoke-5c62da93.log`，sha256 `3f72710e…`），无 FAIL/ERROR 行，`test-usage-bundle: PASS`，同一 sandbox-exec 说明行。`540ae18f` 上的一次运行因修订 R2 时工作树变动被主动中止，不计 |
 | `bash codex/tools/aisoft classify --apply 450` / `--verify 450` | PASS | apply 返回 result=no-op（标签已是 platform / complex）；独立 verify 返回 result=projected |
-| 实际补丁最终 cross-provider 审核 | R1、R2 已执行均 FAIL，最新 HEAD 复审待完成 | 见交叉审查表；前述方案审核不能替代 |
+| 实际补丁最终 cross-provider 审核 | R1、R2 FAIL，R3 PASS（`5c62da93`） | 见交叉审查表；前述方案审核不能替代。本证据提交之后的 diff 另行审核，结果记入 PR 正文与 pr_url 回填提交 |
 | 远端 required CI | NOT RUN | 未 push / PR |
 | installed / 项目 adopt / live | NOT RUN | 不在本次范围 |
 
@@ -203,7 +204,7 @@ updated: 2026-11-16
 | AC-3 | PASS（文本审议） | 同上，Codex R1 独立判定；不是模型行为实验 |
 | AC-4 | PASS（文本审议） | 同上；不宣称效果已改善 |
 | AC-5 | PASS | bundle verify 与历史 / members 比对由实现方与 Codex R1 各自复现；三端隔离导出为实现方结果，R1 未独立重建；真实安装与采用 NOT RUN |
-| AC-6 | 未完成 | 范围、文档预检、完整 smoke、classify 读回已 PASS；治理 STOP / fresh run 已执行；cross-provider R1 FAIL（推理强度与路由不符），负责人已裁决并记录，待 R2 |
+| AC-6 | 未完成 | 范围、文档预检、完整 smoke、classify 读回已 PASS；治理 STOP / fresh run 已执行；cross-provider R1、R2 FAIL 经处置后 R3 PASS（`5c62da93`）；同一 HEAD 完整 smoke PASS；远端 required CI 待 PR 后运行，故整票 AC-6 待 CI 才算闭环 |
 
 ## 交叉审查
 
@@ -213,10 +214,11 @@ updated: 2026-11-16
 |---|---|---|---|---|---|
 | R1 | Claude Code（T01 `f2cce2e4-…`，fresh run `b2a67dee-…`，均 Opus 5.5 / medium） | Codex，Herdr 空间「AISoftPlatform #450 实施审核」terminal `t41`，`codex -m gpt-6-astra -c model_reasoning_effort="high" -s read-only -a never`，状态栏显示 GPT-6-Astra high；`hc wait` 返回 ended / done / turn 1 | BASE `c14a86d4…` .. HEAD `db32606ed67317dc35bbaa30c5fcb5e005a54a4f` | FAIL | P2：实施推理强度 medium 低于路由 max，summary `override_reason` 为空；已由负责人裁决并写入 override_reason，见执行结果。P3：本文件准备期表述与现状矛盾，已在后续提交修正。AC-1..5 判 PASS（AC-5 导出部分为实现方结果），AC-6 未完成；审核者未写文件 |
 | R2 | 同 R1 | 同一 Herdr terminal `t41` 以 `hc send` 复用只读会话，`hc wait` 返回 ended / done / turn 2 | 增量 `db32606e..540ae18fe7afd74dc945c7c664b1ad9f9f00bb18` 及整批 `c14a86d4..540ae18f` | FAIL | P2：override_reason 中“T01 medium 经负责人认可”被认为缺少引用的裁决原文；处置为补引推荐选项原文与负责人“推荐”的选择，并把历史偏差与后续 xhigh 覆盖分开写。P3：执行表仍写最终审核 NOT RUN，已改为 R1 / R2 已执行 FAIL。R1 的 P3 判为基本闭合；原则、bundle、范围复核通过；审核者未写文件 |
+| R3 | 同 R1 | 同一 terminal `t41`，`hc wait` 返回 ended / done / turn 3 | 增量 `540ae18f..5c62da93751b3747c872bfb70bae2d48992b70fd` 及整批 `c14a86d4..5c62da93` | PASS | R2 的 P2 判为闭合（推荐选项原文与负责人“推荐”构成直接依据，历史偏差与 xhigh 覆盖分开记录，未把 T02 强度写成已核实）；P3 闭合。新提 1 条非阻断 P3：AC-6 与遗留项仍写“待 R2”，已在本证据提交改正。原则、bundle、范围复核通过；审核者未写文件，报告称无法直接看到自身型号与强度 |
 
 ## 遗留风险与未完成项
 
-- T01 已完成；T02 仍待 cross-provider R2 与既有最终 PR 确认。T02 本会话实际推理强度未能读回为 xhigh，如实保留。
+- T01、T02 本地部分已完成，停在确认点 2（AWAITING_PR_CONFIRMATION）；push、PR、远端 required CI `CI / verify (pull_request)`、人工合并均未发生。T02 本会话实际推理强度未能读回为 xhigh，如实保留。
 - 验证与来源限制、安装 / 采用边界见 spec；任何未运行项保持 NOT RUN。
 - 治理应用后的 fresh run 已由新会话 `b2a67dee-…` 执行。runtime 依赖校验只证明记录、摘要、身份与提交关系一致，不能独立证明历史命令确实执行。
 - Matt triage 标签未投影：当前安装的 broker 仅提供 lifecycle / classification / project-extension 标签写入，没有 triage 维度写入操作。本次不绕过 typed 边界或升级 broker；不得声称已写入 triage/ready-for-agent。该限制不影响已完成的本地文档与现行路由预检。
