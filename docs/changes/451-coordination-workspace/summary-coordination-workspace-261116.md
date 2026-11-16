@@ -31,9 +31,9 @@ route:
   review: cross-provider
   confirm: 2
 confidence: high
-override_reason: ''
+override_reason: '负责人 2026-11-16 在本票线程回复确认，批准合同并启动实施，未对会话提出的执行强度问题另作说明。会话元数据读回 model claude-opus-5-5、effort medium，与路由 effort max 不一致。T01 按此实际强度执行并如实记录，是否认可由负责人裁决。路由卡其余各格不变。'
 depends_on: []
-status: analyzed
+status: approved
 branch: change/451-coordination-workspace
 pr_url:
 created: 2026-11-16
@@ -64,7 +64,7 @@ required_docs:
   - plan
   - verification
 confidence: high
-override_reason: ''
+override_reason: '负责人 2026-11-16 在本票线程回复确认，批准合同并启动实施，未对会话提出的执行强度问题另作说明。会话元数据读回 model claude-opus-5-5、effort medium，与路由 effort max 不一致。T01 按此实际强度执行并如实记录，是否认可由负责人裁决。路由卡其余各格不变。'
 ```
 
 ### 判级证据
