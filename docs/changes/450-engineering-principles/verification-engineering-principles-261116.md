@@ -64,10 +64,131 @@ updated: 2026-11-16
 | T01 diff / 文档 / 范围检查 | PASS | `git diff --check` 无输出；check-change-documents 两项 PASS；治理提交 `9358cdf5aff69c12dccb3acb140dc49d0cbedff1` 仅含原则与 bundle |
 | T01 场景与反例文本审议 | PASS（实现方自审） | 四类关注点明写为提示、不要求每项任务执行四类验证；证据行区分独立运行 / 实现方结果 / 静态推导并保留未验证说明；学习条目保留归因与成本维度，结构优先为评估顺序。仅为实现方静态审议，不是独立审核 |
 | T01 治理 STOP | 已执行 | 治理提交后停止本运行，T01 完成判定与 T02 交 fresh run；本运行未执行 T02 任何步骤 |
+| fresh run 接管 | PASS | 新 Claude Code 会话 `b2a67dee-88df-4a7a-baa1-e1a2b5eb5a86`（Opus 5.5；本会话无法读取实际推理强度，记为未核实，路由要求 frontier/max）。核对 branch / HEAD `4efe9516…` / 工作树干净，重读交接文件、spec、plan、verification、治理 diff 与 issue-session-flow 技能；`claim-worktree --takeover` 返回 taken-over，owner 由 `f2cce2e4-…` 改为本会话 |
+| `prepare-ticket 450 T01 --provider claude --resume` | REFUSED（按设计） | 返回 resume identity/semantic contract mismatch。核对源码：plan semantic_hash 在三个提交均为 `3b445c7b…`，差异仅在 owner；runtime 规定未完成票的 resume 只限原 owner，继任者只能消费已完成依赖。经负责人在线程中授权继续，改为 fresh run 复跑 T01 检查、写入下方机器可读完成记录，再由 `prepare-ticket 450 T02` 的依赖校验判定 T01 |
+| T01 完成判定（fresh run 复跑） | PASS | 基线副本上 forward apply --check 通过（基线 `07c78311…`）；HEAD 上 reverse --check 通过、全文 `3dda6096…` 等于 spec；bundle `--verify` VERIFIED 1.24.2；31 条既有 release 字节前缀与 members 等非 release 键均同 change_base；`git diff --check c14a86d4..HEAD` 无输出；check-change-documents 两项 PASS。重读治理 diff，引言“不增加确认点、流程状态或验证硬门”保留，四类关注点为提示。记录中 AC 的 PASS 仅指 T01 负责的部分，AC-2/3/4 的独立审议由 T02 cross-provider 承担 |
 | T02 fresh run、完整 smoke、负向夹具、隔离三端导出 | NOT RUN | 尚未开始 |
 | 实际补丁最终 cross-provider 审核 | NOT RUN | 前述方案审核不能替代 |
 | 远端 required CI | NOT RUN | 未 push / PR |
 | installed / 项目 adopt / live | NOT RUN | 不在本次范围 |
+
+## 机器可读执行记录
+
+`ticket_execution` 读取的唯一记录；T01 由 fresh run 判定完成。
+
+```aisoft-execution
+{
+  "change_base": "c14a86d4ad0d1fd5938ab31343f8d72acd486a71",
+  "tickets": {
+    "T01": {
+      "start": {
+        "identity": {
+          "issue": 450,
+          "branch": "change/450-engineering-principles",
+          "owner": "f2cce2e4-3bb8-4160-87a4-9b9a1a5ee664",
+          "worktree": "/private/tmp/issue-450-engineering-principles",
+          "provider": "claude",
+          "plan_path": "docs/changes/450-engineering-principles/plan-engineering-principles-261116.md",
+          "semantic_hash": "3b445c7b8a6c12f8807ca45328b2911dde272778c32a8512b236042b2a42058d"
+        },
+        "ticket": "T01",
+        "ticket_base": "4d4321dee233dc55116539f77799817595108167",
+        "raw_plan_sha256": "ad8a0eee555002734814d1bee82e9e235c42fab6530d753dc49e00e1a8f579ec",
+        "scope": [
+          "docs/changes/450-engineering-principles/summary-engineering-principles-261116.md",
+          "docs/changes/450-engineering-principles/spec-engineering-principles-261116.md",
+          "docs/changes/450-engineering-principles/plan-engineering-principles-261116.md",
+          "docs/changes/450-engineering-principles/verification-engineering-principles-261116.md",
+          "docs/changes/450-engineering-principles/proposals/engineering-principles.patch",
+          "skills/aisoft-platform/references/engineering-principles.md",
+          "usage/bundle.json",
+          "docs/governance/review-evidence-index.md"
+        ],
+        "initial_state": {
+          "staged": {},
+          "unstaged": {},
+          "untracked": {}
+        },
+        "derived_plan": ".superpowers/aisoft/450/issue-450-def31ffb46b2f99d-3b445c7b8a6c12f8.md",
+        "scratch": ".superpowers/sdd/issue-450-def31ffb46b2f99d-3b445c7b8a6c12f8",
+        "policy_sha256": "850b91ae60b311eb6a48e52f372d0bfe1945ba60d9ff5da7bc540ff59183885d",
+        "route": {
+          "process": "complex-production",
+          "tier": "frontier",
+          "effort": "max",
+          "skills": "to-spec, to-tickets, executing-plans, verification-before-completion",
+          "method": "spec-plan",
+          "verify": "full+reverse-proof",
+          "review": "cross-provider",
+          "confirm": "2"
+        },
+        "source_evidence": {
+          "codex/vendor/mattpocock/v1.2.2/manifest.json": {
+            "sha256": "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da",
+            "tag": "v1.2.2",
+            "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
+          },
+          "codex/vendor/mattpocock/v1.3.1/manifest.json": {
+            "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd",
+            "tag": "v1.3.1",
+            "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+          },
+          "codex/vendor/superpowers/v7.0.0/manifest.json": {
+            "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692",
+            "tag": "v7.0.0",
+            "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+          }
+        },
+        "model_configuration": "not observed by helper; caller records actual model/effort in verification"
+      },
+      "base": "4d4321dee233dc55116539f77799817595108167",
+      "head": "4efe9516dad7b5366ec8fa4c08f07363f0a1f5c1",
+      "semantic_hash": "3b445c7b8a6c12f8807ca45328b2911dde272778c32a8512b236042b2a42058d",
+      "validation_sha256": "26fd8b6e32e1c10f5a7e0c6611e42dc1c7a50794de6bd10a022e987dc26176d1",
+      "ac": {
+        "AC-1": "PASS",
+        "AC-2": "PASS",
+        "AC-3": "PASS",
+        "AC-4": "PASS",
+        "AC-5": "PASS",
+        "AC-6": "PASS"
+      },
+      "checks": [
+        {
+          "command": "git apply --check --unidiff-zero docs/changes/450-engineering-principles/proposals/engineering-principles.patch",
+          "result": "PASS",
+          "evidence": "T01 owner f2cce2e4 ran before applying (exit=0); fresh run b2a67dee-88df-4a7a-baa1-e1a2b5eb5a86 2026-11-16: re-ran against baseline copy of engineering-principles.md (sha256 07c78311…f456) exit=0"
+        },
+        {
+          "command": "git apply --reverse --check --unidiff-zero docs/changes/450-engineering-principles/proposals/engineering-principles.patch",
+          "result": "PASS",
+          "evidence": "fresh run b2a67dee-88df-4a7a-baa1-e1a2b5eb5a86 2026-11-16: exit=0 on HEAD 4efe9516; full-file sha256 3dda6096…1d9d1811 equals spec"
+        },
+        {
+          "command": "bash codex/tools/usage-bundle.sh --release 1.24.2 --today <实施日> --compatibility patch --notes '细化共享工程原则的结果验证、证据来源与重复问题改进，不新增流程硬门（#450）'",
+          "result": "PASS",
+          "evidence": "T01 owner f2cce2e4 ran with --today 2026-11-16: RELEASED sha256:8db2e495…; fresh run b2a67dee-88df-4a7a-baa1-e1a2b5eb5a86 2026-11-16: last release 1.24.2/patch/2026-11-16, prior 31 releases byte-equal prefix, non-release keys incl. members equal to c14a86d4"
+        },
+        {
+          "command": "bash codex/tools/usage-bundle.sh --verify --baseline-ref c14a86d4ad0d1fd5938ab31343f8d72acd486a71",
+          "result": "PASS",
+          "evidence": "fresh run b2a67dee-88df-4a7a-baa1-e1a2b5eb5a86 2026-11-16: VERIFIED 1.24.2 sha256:8db2e4951600ceb74210540df1e72fe9c2d285c518b9ce3dbe54c35036733777 exit=0"
+        },
+        {
+          "command": "git diff --check",
+          "result": "PASS",
+          "evidence": "fresh run b2a67dee-88df-4a7a-baa1-e1a2b5eb5a86 2026-11-16: git diff --check c14a86d4..4efe9516 no output exit=0"
+        },
+        {
+          "command": "bash codex/tools/aisoft check-change-documents --porcelain",
+          "result": "PASS",
+          "evidence": "fresh run b2a67dee-88df-4a7a-baa1-e1a2b5eb5a86 2026-11-16: change-documents PASS, change-pr-url PASS exit=0"
+        }
+      ]
+    }
+  }
+}
+```
 
 ## Acceptance criteria 结果
 
