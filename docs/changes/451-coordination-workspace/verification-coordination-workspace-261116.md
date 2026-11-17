@@ -21,11 +21,11 @@ updated: 2026-11-16
 
 ## 基线与范围
 
-- Commit SHA：T01 治理提交 `3f4b6a6282bdd653fad18b54c9484cc2f1f45081`；ticket_base `443d8983f5b0c88c48c034b4f1286a651e3e0984`；change_base `c14a86d4ad0d1fd5938ab31343f8d72acd486a71`。
-- 基线：`origin/main` = `c14a86d4ad0d1fd5938ab31343f8d72acd486a71`（2026-11-16 broker `git.fetch.main` 返回 PASS 后读取）。
+- Commit SHA：T01 治理提交 `3f4b6a6282bdd653fad18b54c9484cc2f1f45081`；ticket_base `443d8983f5b0c88c48c034b4f1286a651e3e0984`；change_base `c14a86d4ad0d1fd5938ab31343f8d72acd486a71`。T01 交回 HEAD `638def252e487ef58087242552b46b5610c9e71e`；fresh run 的 T01 完成记录提交 `1bf0dcbfc262f0df547fae25b0a2304848a947c9`，也是 T02 的 ticket_base。
+- 基线：`origin/main` = `c14a86d4ad0d1fd5938ab31343f8d72acd486a71`（2026-11-16 broker `git.fetch.main` 返回 PASS 后读取；fresh run 于 2026-11-16 与 2026-11-17 各 fetch 一次，读回不变）。
 - 环境：Mac 平台检出 `/Users/benque/MyDocs/AISoftPlatform`；change worktree `/private/tmp/issue-451-coordination-workspace`。
-- 本记录负责证明的 acceptance criteria：AC-1 至 AC-8。T01 已执行到治理 STOP，完成判定与 T02 待 fresh run。
-- 执行会话：Claude Code，会话元数据读回 model `claude-opus-5-5`、effort `medium`（路由为 max，偏离已记入 summary `override_reason`，待负责人裁决）。实际加载的 superpowers 插件路径为 7.0.2，平台 pin 为 7.0.0；`executing-plans` 由该插件提供，Txx 仍是唯一合同。
+- 本记录负责证明的 acceptance criteria：AC-1 至 AC-8。T01 已执行到治理 STOP，并由 fresh run 补齐完成判定；T02 由 fresh run 执行。
+- 执行会话：T01 为 Claude Code 会话 `0a9bf32d-…`，会话元数据读回 model `claude-opus-5-5`、effort `medium`。T02 为 fresh run 会话 `7f3a1416-3cf0-4e14-8d1c-6f9aa2546590`，读回 model `claude-opus-5-5`、effort `xhigh`。路由为 max，两次偏离都记入 summary `override_reason`，待负责人裁决。实际加载的 superpowers 插件路径为 7.0.2，平台 pin 为 7.0.0；`executing-plans` 由该插件提供，Txx 仍是唯一合同。T02 的派生视图 `.superpowers/aisoft/451/issue-451-0a099e7c…-174020f8….md` 与台账 `.superpowers/sdd/issue-451-0a099e7c…-174020f8…/progress.md` 只是缓存。
 
 ## 准备阶段记录（不是实施验收）
 
@@ -73,7 +73,9 @@ updated: 2026-11-16
 | T01 删短语反证复核（fresh run） | 按预期失败后还原 | 在 worktree 外用 `git archive 638def25` 导出副本操作，不碰 worktree。逐条删掉「不授予任何访问权」「对其他项目缺省只读」「目标还没有 Issue 时写「待建票」，不编造编号」与小节标题，`test_coordination_workspace…` 各失败一次；删掉「它的项目目录不是第三种访问来源」，或把「已登记、已采用」「exact manifest project, protected」加回去，`test_adoption_entry_points…` 各失败一次。7 次变异 7 次失败，还原后 OK，四份文件 SHA-256 回到固定值 |
 | 全分支 `git diff --check c14a86d4..HEAD` | FAIL（仅冻结补丁） | 12 处 trailing whitespace 全部在 `proposals/coordination-workspace.patch`：unified diff 把空行上下文写成单个空格。T01 只对工作树跑过无范围的 `git diff --check`，所以没有暴露。排除该文件后同一命令退出 0。补丁 SHA-256 钉在 spec，T01 的 apply 命令也不带 `--unidiff-zero`，改成零上下文格式（#425 的做法）会改动冻结合同并使 T01 回执失效，所以不改补丁、如实记录。CI 与 smoke 都不运行这项检查 |
 | T02 完整 smoke | NOT RUN | 待执行 |
-| T02 隔离 build 三端字节比对 | NOT RUN | 待执行 |
+| `prepare-ticket 451 T02 --provider claude` | prepared | 依赖校验确认 T01 完成；ticket_base `1bf0dcbfc262f0df547fae25b0a2304848a947c9`，起始 staged、unstaged、untracked 均空，语义摘要 `174020f8…` 不变，回执 `.superpowers/aisoft/451/T02.json` |
+| T02 `bash codex/tools/usage-bundle.sh --build <本票新建的隔离目录>` | PASS | 目录为本会话 scratchpad 下新建的 `build-451-t02`，不是真实 HOME，不是安装。输出 `BUILT 1.25.0 sha256:8e0e15405bb6adac945943e7bc267bcd57c20659e8c25e6900e1b284421e43c8`，与 `--verify` 摘要相同 |
+| T02 三端字节比对 | PASS | `cmp` 逐个比较 `project/.agents`、`project/.claude`、`project/.cursor` 下的 `skills/issue-session-flow/SKILL.md`、`skills/aisoft-platform/SKILL.md`、`skills/aisoft-platform/references/greenfield-planning.md` 与源码，9 个文件全部相同。`aisoft-matt-workflow` 只导出到 `.agents`（Claude、Cursor 两端没有这个技能目录），该落点 1 个文件与源码相同 |
 | T02 `classify --apply` 与 `--verify` | NOT RUN | 待执行 |
 | required CI `CI / verify (pull_request)` | NOT RUN | PR 之后才有 |
 | Mac 技能重装与漂移读回 | NOT RUN | 合并后由负责人执行，不在本票授权内 |

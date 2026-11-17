@@ -31,7 +31,7 @@ route:
   review: cross-provider
   confirm: 2
 confidence: high
-override_reason: '负责人 2026-11-16 在本票线程回复确认，批准合同并启动实施，未对会话提出的执行强度问题另作说明。会话元数据读回 model claude-opus-5-5、effort medium，与路由 effort max 不一致。T01 按此实际强度执行并如实记录，是否认可由负责人裁决。路由卡其余各格不变。'
+override_reason: '负责人 2026-11-16 在本票线程回复确认，批准合同并启动实施，未对会话提出的执行强度问题另作说明。会话元数据读回 model claude-opus-5-5、effort medium，与路由 effort max 不一致。T01 按此实际强度执行并如实记录。T02 由 fresh run 会话执行，元数据读回 model claude-opus-5-5、effort xhigh，仍低于路由 max。2026-11-17 会话在线程询问是否像 #450 一样认可 xhigh，负责人同日回复「授权」；该回复对应同一消息里 T01 完成记录的写入请求，没有对执行强度单独表态。T01 的 medium 与 T02 的 xhigh 是否认可均由负责人裁决。路由卡其余各格不变。'
 depends_on: []
 status: approved
 branch: change/451-coordination-workspace
@@ -64,7 +64,7 @@ required_docs:
   - plan
   - verification
 confidence: high
-override_reason: '负责人 2026-11-16 在本票线程回复确认，批准合同并启动实施，未对会话提出的执行强度问题另作说明。会话元数据读回 model claude-opus-5-5、effort medium，与路由 effort max 不一致。T01 按此实际强度执行并如实记录，是否认可由负责人裁决。路由卡其余各格不变。'
+override_reason: '负责人 2026-11-16 在本票线程回复确认，批准合同并启动实施，未对会话提出的执行强度问题另作说明。会话元数据读回 model claude-opus-5-5、effort medium，与路由 effort max 不一致。T01 按此实际强度执行并如实记录。T02 由 fresh run 会话执行，元数据读回 model claude-opus-5-5、effort xhigh，仍低于路由 max。2026-11-17 会话在线程询问是否像 #450 一样认可 xhigh，负责人同日回复「授权」；该回复对应同一消息里 T01 完成记录的写入请求，没有对执行强度单独表态。T01 的 medium 与 T02 的 xhigh 是否认可均由负责人裁决。路由卡其余各格不变。'
 ```
 
 ### 判级证据
