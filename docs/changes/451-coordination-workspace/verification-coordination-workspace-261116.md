@@ -67,12 +67,152 @@ updated: 2026-11-16
 | T01 `python3 -B codex/tests/check-project-leak.py` | 通过 | `PASS: project-leak (4 baseline files, 12 hits; site 7 files, 29 hits)` |
 | T01 `git diff --check` 与 `check-change-documents --porcelain` | 通过 | 无空白错误；`change-documents PASS`、`change-pr-url PASS` |
 | T01 场景与反例审议 | 已做 | spec 七个场景逐条对到新小节的角色、远端写入、任务书、版本不一致、依赖、缺席与恢复、不授权各条，没有发现文字允许被排除的误读。这是作者自审，不是独立审查 |
+| fresh run 接管 | PASS | 新 Claude Code 会话 `7f3a1416-3cf0-4e14-8d1c-6f9aa2546590`（会话元数据读回 model `claude-opus-5-5`、effort `xhigh`）。核对 branch、HEAD `638def252e487ef58087242552b46b5610c9e71e`、工作树干净，重读 summary、spec、plan、verification、AGENTS.md、`issue-session-flow`、`execution-adapter` 与治理 diff `c14a86d4..638def25`；`claim-worktree --takeover` 返回 `taken-over`，owner 由 `0a9bf32d-…` 改为本会话。broker `git.fetch.main` 两次读回 `origin/main` 仍为 `c14a86d4…` |
+| `prepare-ticket 451 T01 --provider claude --resume` | REFUSED（按设计） | 返回 `resume identity/semantic contract mismatch`。plan 语义摘要在 `3f4b6a62`、`638def25` 与当前工作树均为 `174020f8…`，差异只在 owner；runtime 规定未完成票只许原 owner resume，继任者只能消费已完成的依赖票。没有手改 owner 文件。负责人 2026-11-17 在本票线程回复「授权」，授权本 fresh run 写入 T01 完成记录；改为复跑可只读复现的 T01 检查，写入下方机器可读记录，再由 `prepare-ticket 451 T02` 的依赖校验判定 T01 |
+| T01 完成判定（fresh run 复跑） | PASS | 在 HEAD `638def25` 上：`tests.test_session_contract` 15 个 OK；补丁 SHA-256 等于 spec，在从 `c14a86d4` 取出的 `skills/` 副本上 forward `--check` 通过，在 HEAD 上 `--reverse --check` 通过；四份文件 SHA-256 等于 spec 固定值；bundle `--verify` 为 `VERIFIED 1.25.0 sha256:8e0e1540…`，既有 31 条 release 与 `contract_version`、`lock_path`、`members` 均与 `c14a86d4` 相同；泄漏守卫计数不变；`check-change-documents` 两项 PASS。AC 的 PASS 只指 T01 负责的部分，AC-2、AC-3、AC-4 的独立审议与 AC-7 的三端导出、AC-8 的 smoke、判级与交叉审查由 T02 承担 |
+| T01 删短语反证复核（fresh run） | 按预期失败后还原 | 在 worktree 外用 `git archive 638def25` 导出副本操作，不碰 worktree。逐条删掉「不授予任何访问权」「对其他项目缺省只读」「目标还没有 Issue 时写「待建票」，不编造编号」与小节标题，`test_coordination_workspace…` 各失败一次；删掉「它的项目目录不是第三种访问来源」，或把「已登记、已采用」「exact manifest project, protected」加回去，`test_adoption_entry_points…` 各失败一次。7 次变异 7 次失败，还原后 OK，四份文件 SHA-256 回到固定值 |
+| 全分支 `git diff --check c14a86d4..HEAD` | FAIL（仅冻结补丁） | 12 处 trailing whitespace 全部在 `proposals/coordination-workspace.patch`：unified diff 把空行上下文写成单个空格。T01 只对工作树跑过无范围的 `git diff --check`，所以没有暴露。排除该文件后同一命令退出 0。补丁 SHA-256 钉在 spec，T01 的 apply 命令也不带 `--unidiff-zero`，改成零上下文格式（#425 的做法）会改动冻结合同并使 T01 回执失效，所以不改补丁、如实记录。CI 与 smoke 都不运行这项检查 |
 | T02 完整 smoke | NOT RUN | 待执行 |
 | T02 隔离 build 三端字节比对 | NOT RUN | 待执行 |
 | T02 `classify --apply` 与 `--verify` | NOT RUN | 待执行 |
 | required CI `CI / verify (pull_request)` | NOT RUN | PR 之后才有 |
 | Mac 技能重装与漂移读回 | NOT RUN | 合并后由负责人执行，不在本票授权内 |
 | 任何 provider 会话实际加载新文字 | NOT RUN | 本次未取得证据 |
+
+## 机器可读执行记录
+
+`ticket_execution` 读取的唯一记录。T01 由 fresh run 复跑检查后判定完成（负责人 2026-11-17 在本票线程授权）；`start` 原样取自 `.superpowers/aisoft/451/T01.json`，`head` 为 T01 交回时的实际 HEAD。T02 是末票，形成 PR 候选时保持 in-progress，不写完成记录。
+
+```aisoft-execution
+{
+  "change_base": "c14a86d4ad0d1fd5938ab31343f8d72acd486a71",
+  "tickets": {
+    "T01": {
+      "start": {
+        "identity": {
+          "issue": 451,
+          "branch": "change/451-coordination-workspace",
+          "owner": "0a9bf32d-69b7-4d4e-a676-2bc1eb8df9ed",
+          "worktree": "/private/tmp/issue-451-coordination-workspace",
+          "provider": "claude",
+          "plan_path": "docs/changes/451-coordination-workspace/plan-coordination-workspace-261116.md",
+          "semantic_hash": "174020f86ccade6e144b1ccfdb31b994989efd898a9253277ce50cc6501f2dbb"
+        },
+        "ticket": "T01",
+        "ticket_base": "443d8983f5b0c88c48c034b4f1286a651e3e0984",
+        "raw_plan_sha256": "232593360f2cfbc10e9586c77ef81a0e8c1dc7c0a76d24aaa08c2a6a1e6ceea4",
+        "scope": [
+          "docs/changes/451-coordination-workspace/summary-coordination-workspace-261116.md",
+          "docs/changes/451-coordination-workspace/spec-coordination-workspace-261116.md",
+          "docs/changes/451-coordination-workspace/plan-coordination-workspace-261116.md",
+          "docs/changes/451-coordination-workspace/verification-coordination-workspace-261116.md",
+          "docs/changes/451-coordination-workspace/proposals/coordination-workspace.patch",
+          "docs/changes/451-coordination-workspace/proposals/home-repo-proposal-v2.1.md",
+          "skills/issue-session-flow/SKILL.md",
+          "skills/aisoft-platform/SKILL.md",
+          "skills/aisoft-platform/references/greenfield-planning.md",
+          "skills/aisoft-matt-workflow/SKILL.md",
+          "codex/runtime/tests/test_session_contract.py",
+          "usage/bundle.json",
+          "docs/governance/review-evidence-index.md"
+        ],
+        "initial_state": {
+          "staged": {},
+          "unstaged": {},
+          "untracked": {}
+        },
+        "derived_plan": ".superpowers/aisoft/451/issue-451-aca4eca1ea671363-174020f86ccade6e.md",
+        "scratch": ".superpowers/sdd/issue-451-aca4eca1ea671363-174020f86ccade6e",
+        "policy_sha256": "850b91ae60b311eb6a48e52f372d0bfe1945ba60d9ff5da7bc540ff59183885d",
+        "route": {
+          "process": "complex-production",
+          "tier": "frontier",
+          "effort": "max",
+          "skills": "to-spec, to-tickets, executing-plans, verification-before-completion",
+          "method": "spec-plan",
+          "verify": "full+reverse-proof",
+          "review": "cross-provider",
+          "confirm": "2"
+        },
+        "source_evidence": {
+          "codex/vendor/mattpocock/v1.2.2/manifest.json": {
+            "sha256": "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da",
+            "tag": "v1.2.2",
+            "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
+          },
+          "codex/vendor/mattpocock/v1.3.1/manifest.json": {
+            "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd",
+            "tag": "v1.3.1",
+            "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+          },
+          "codex/vendor/superpowers/v7.0.0/manifest.json": {
+            "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692",
+            "tag": "v7.0.0",
+            "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+          }
+        },
+        "model_configuration": "not observed by helper; caller records actual model/effort in verification"
+      },
+      "base": "443d8983f5b0c88c48c034b4f1286a651e3e0984",
+      "head": "638def252e487ef58087242552b46b5610c9e71e",
+      "semantic_hash": "174020f86ccade6e144b1ccfdb31b994989efd898a9253277ce50cc6501f2dbb",
+      "validation_sha256": "68db3cdd0c580c770848628d931bc5a4c983d836a5a2286da15d07ce5bc8620e",
+      "ac": {
+        "AC-1": "PASS",
+        "AC-2": "PASS",
+        "AC-3": "PASS",
+        "AC-4": "PASS",
+        "AC-5": "PASS",
+        "AC-6": "PASS",
+        "AC-7": "PASS",
+        "AC-8": "PASS"
+      },
+      "checks": [
+        {
+          "command": "cd codex/runtime && python3 -m unittest tests.test_session_contract",
+          "result": "PASS",
+          "evidence": "T01 owner 0a9bf32d-69b7-4d4e-a676-2bc1eb8df9ed: before patch Ran 15 FAILED (failures=2, the two new tests), after patch Ran 15 OK; fresh run 7f3a1416-3cf0-4e14-8d1c-6f9aa2546590 2026-11-16: Ran 15 OK on HEAD 638def25; delete-phrase reverse proof on a git-archive copy of 638def25 outside the worktree: 7 of 7 mutations (3 pinned phrases and section heading in issue-session-flow, 1 phrase in aisoft-platform, re-adding both retired phrases) made the matching test FAIL, restored copy OK with spec SHA-256"
+        },
+        {
+          "command": "git apply --check docs/changes/451-coordination-workspace/proposals/coordination-workspace.patch",
+          "result": "PASS",
+          "evidence": "T01 owner 0a9bf32d-69b7-4d4e-a676-2bc1eb8df9ed: exit 0 before applying; fresh run 7f3a1416-3cf0-4e14-8d1c-6f9aa2546590 2026-11-16: exit 0 against skills/ extracted from c14a86d4; patch sha256 d2352ae8…a7c3 equals spec; baseline file SHA-256 equal spec"
+        },
+        {
+          "command": "git apply --reverse --check",
+          "result": "PASS",
+          "evidence": "fresh run 7f3a1416-3cf0-4e14-8d1c-6f9aa2546590 2026-11-16: git apply --reverse --check on the same patch exit 0 at HEAD 638def25; four file SHA-256 b883faf6…, 6c73263c…, b63333a0…, b008bbaf… equal spec"
+        },
+        {
+          "command": "bash codex/tools/usage-bundle.sh --release 1.25.0 --today <实施日> --compatibility minor --notes '跨项目协调工作区成为调度协调的可选合法位置；自主采用入口两处表述对齐 ADR 0003（#451）'",
+          "result": "PASS",
+          "evidence": "T01 owner 0a9bf32d-69b7-4d4e-a676-2bc1eb8df9ed: ran with --today 2026-11-16, RELEASED 1.25.0 sha256:8e0e1540…; fresh run 7f3a1416-3cf0-4e14-8d1c-6f9aa2546590 2026-11-16: last release 1.25.0/minor/2026-11-16 with the planned notes, prior 31 releases equal prefix, contract_version, lock_path and members equal c14a86d4; origin/main still c14a86d4 after broker git.fetch.main, latest there 1.24.1"
+        },
+        {
+          "command": "bash codex/tools/usage-bundle.sh --verify --baseline-ref c14a86d4ad0d1fd5938ab31343f8d72acd486a71",
+          "result": "PASS",
+          "evidence": "fresh run 7f3a1416-3cf0-4e14-8d1c-6f9aa2546590 2026-11-16: VERIFIED 1.25.0 sha256:8e0e15405bb6adac945943e7bc267bcd57c20659e8c25e6900e1b284421e43c8 exit 0"
+        },
+        {
+          "command": "python3 -B codex/tests/check-project-leak.py",
+          "result": "PASS",
+          "evidence": "fresh run 7f3a1416-3cf0-4e14-8d1c-6f9aa2546590 2026-11-16: PASS: project-leak (4 baseline files, 12 hits; site 7 files, 29 hits) exit 0, same counts as T01"
+        },
+        {
+          "command": "git diff --check",
+          "result": "PASS",
+          "evidence": "T01 owner 0a9bf32d-69b7-4d4e-a676-2bc1eb8df9ed: working tree vs index no output; fresh run 7f3a1416-3cf0-4e14-8d1c-6f9aa2546590 2026-11-16: git diff --check c14a86d4..638def25 excluding the frozen patch exit 0; the frozen patch alone reports 12 blank unified-diff context lines, recorded under T02"
+        },
+        {
+          "command": "bash codex/tools/aisoft check-change-documents --porcelain",
+          "result": "PASS",
+          "evidence": "fresh run 7f3a1416-3cf0-4e14-8d1c-6f9aa2546590 2026-11-16: change-documents PASS, change-pr-url PASS exit 0"
+        }
+      ]
+    }
+  }
+}
+```
 
 ## Acceptance criteria 结果
 

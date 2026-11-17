@@ -33,7 +33,7 @@ updated: 2026-11-16
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 合同钉子测试先红后绿，冻结文字精确应用，使用包追加一个版本，形成可回退的治理候选并停止 | - | pending |
+| T01 | 合同钉子测试先红后绿，冻结文字精确应用，使用包追加一个版本，形成可回退的治理候选并停止 | - | done |
 | T02 | fresh run 完成整批验证、隔离导出比对、反向证明、判级投影、独立交叉审查与证据，形成最终 PR 候选 | T01 | pending |
 
 ## T01：受控应用冻结文字与发布登记
@@ -96,6 +96,7 @@ updated: 2026-11-16
 <!-- execution-evidence:start -->
 2026-11-16：只完成合同准备。T01、T02 未开始；ticket_base、治理 candidate_head、正式 smoke、隔离 build 与实际补丁交叉审查均 NOT RUN。准备阶段的只读核对与一次性副本预演见映射 verification，预演不是本票的执行证据。
 2026-11-16：负责人在本票线程回复「确认」，合同获批。summary 记为 approved（提交 `443d8983f5b0c88c48c034b4f1286a651e3e0984`），Issue 生命周期标签经 broker 由 `needs-analysis` 改为 `approved`。会话 `0a9bf32d-69b7-4d4e-a676-2bc1eb8df9ed` 运行 `prepare-ticket 451 T01 --provider claude`，回执 status=prepared，ticket_base `443d8983f5b0c88c48c034b4f1286a651e3e0984`，起始 staged、unstaged、untracked 均空。钉子先红、冻结补丁精确应用、钉子转绿并做删短语反证、bundle 追加 1.25.0；治理提交 `3f4b6a6282bdd653fad18b54c9484cc2f1f45081` 只含四份技能文件、测试文件与 bundle，随后 STOP。T01 状态保持 pending：真实完成判定由 fresh run 以 `--resume` 恢复后补齐；T02 未开始。逐条结果见映射 verification。
+2026-11-17：fresh run 会话 `7f3a1416-3cf0-4e14-8d1c-6f9aa2546590` 以 `claim-worktree --takeover` 接手（HEAD `638def252e487ef58087242552b46b5610c9e71e`，工作树干净，`origin/main` 仍为 `c14a86d4…`）。`prepare-ticket 451 T01 --provider claude --resume` 因 owner 变化被拒（语义摘要未变）；经负责人在本票线程授权，fresh run 复跑 T01 可复现的检查并在映射 verification 写入 `aisoft-execution` 完成记录（base `443d8983…`，head `638def25…`），T01 标为 done，由 `prepare-ticket 451 T02` 的依赖校验确认。
 <!-- execution-evidence:end -->
 
 ## 部署与回滚
