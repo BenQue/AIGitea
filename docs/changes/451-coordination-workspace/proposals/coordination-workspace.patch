@@ -1,0 +1,98 @@
+diff --git a/skills/aisoft-matt-workflow/SKILL.md b/skills/aisoft-matt-workflow/SKILL.md
+index b4b2fa93..a55fad02 100644
+--- a/skills/aisoft-matt-workflow/SKILL.md
++++ b/skills/aisoft-matt-workflow/SKILL.md
+@@ -11,8 +11,10 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
+ 
+ ## Repository initialization
+ 
+-1. Finish AISoftPlatform repository onboarding first: exact manifest project, protected `main`, required CI, project Agent
+-   permission gate and the 27-label manifest must all read back successfully.
++1. Finish the repository's adoption first (ADR 0003): the exact target bound by its access source (`.aisoft/project.json`
++   for a self-declared project, the manifest project for site-hardened access), protected `main`, required CI and the
++   27-label manifest must all be evidenced as that source requires. The project Agent permission gate applies only to
++   site-hardened access; a self-declared project records the maintainer's protection read-back in its adoption Issue.
+ 2. Explicitly invoke `$setup-matt-pocock-skills` once. Select **Other** for the tracker and use the three files under
+    `templates/docs/agents/` as the Gitea, triage and domain configuration.
+ 3. Add the upstream skill's `## Agent skills` block only in the repository instruction file selected by that skill. If
+diff --git a/skills/aisoft-platform/SKILL.md b/skills/aisoft-platform/SKILL.md
+index ab04f53e..6960accb 100644
+--- a/skills/aisoft-platform/SKILL.md
++++ b/skills/aisoft-platform/SKILL.md
+@@ -51,7 +51,7 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
+ - 项目自声明来源：`.aisoft/project.json` 把检出绑定到 exact 仓库与项目身份。
+ - 站点来源：broker manifest 的 `projects[]` 把一个项目 id 绑定到 exact 仓库、project agent 与 Mac checkout。
+ 
+-不要从别的项目或示例推断目标仓库，也不要让两个项目共用 worktree。
++不要从别的项目或示例推断目标仓库，也不要让两个项目共用 worktree。组织的跨项目协调工作区（`issue-session-flow`「跨项目协调工作区（可选）」）只作导航与交接，它的项目目录不是第三种访问来源。
+ 
+ 采用通用流程不需要平台登记（ADR 0003）。项目选用站点加固访问时，才把仓库登记进严格的 `codex/config/gitea-governance.json`（Issue #35 governance 合同已生效）。登记流程是：校验 manifest，为一个 exact 仓库引导非 site-admin 的平台 manager，只读跑 governance `check`，再用 manifest 声明的 project agent apply 这一个仓库。未知仓库只报告；不从发现结果推断可见性、归属或权限。
+ 
+diff --git a/skills/aisoft-platform/references/greenfield-planning.md b/skills/aisoft-platform/references/greenfield-planning.md
+index 4a5316cb..b75819f2 100644
+--- a/skills/aisoft-platform/references/greenfield-planning.md
++++ b/skills/aisoft-platform/references/greenfield-planning.md
+@@ -1,6 +1,6 @@
+ # 全新项目需求发现与滚动阶段规划
+ 
+-本方法用于已登记、已采用平台使用发布包的全新项目，从已有想法或需求材料形成项目规划，再交给现有 Issue 流程。
++本方法用于已采用平台使用发布包的全新项目（采用不需要平台登记，ADR 0003），从已有想法或需求材料形成项目规划，再交给现有 Issue 流程。
+ 规划尺度是：**当前阶段详细，下一阶段有轮廓，远期保留方向。**
+ 事实、假设、决定和验证证据的通用要求见 [共享工程原则](engineering-principles.md)；Issue 交付仍按项目内
+ `.aisoft/platform-usage.md` 与 [路由表](route-policy.md)。这里不增加授权主键、机器状态或确认点。
+diff --git a/skills/issue-session-flow/SKILL.md b/skills/issue-session-flow/SKILL.md
+index e8efa7be..2444c9bb 100644
+--- a/skills/issue-session-flow/SKILL.md
++++ b/skills/issue-session-flow/SKILL.md
+@@ -32,6 +32,8 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
+ - 需要处理多个已有 Issue
+ 
+ 调度会话开在**这批 Issue 的相关项目**里，只协调不实现：不建 change worktree、不写实现代码、不碰任何 Issue 的分支。
++这批 Issue 分属多个项目时，协调也可以放在组织自己的跨项目协调工作区（见下文「跨项目协调工作区（可选）」）；
++各项目内的拆票、派单与跟踪仍归该项目的调度会话。
+ 
+ 大阶段任务拆票前，先对整个阶段 `$grill-me` 一次定需求，再拆成 Issue。开发阶段（`change_control: development`）
+ 按批次拆：一个功能或一组相关改动一张 Issue，不同功能与含高风险 flag 的重大变更才分开，规则见平台 `03` §1「开发阶段」。调度会话的产出物是一张**路线图**，
+@@ -74,7 +76,7 @@ aisoft scan-worktrees --repo <checkout>
+ 
+ |  | 调度会话 | Issue 会话 |
+ |---|---|---|
+-| 开在 | 相关项目 checkout | 该 Issue 的目标项目 checkout |
++| 开在 | 相关项目 checkout；跨项目协调可在协调工作区 | 该 Issue 的目标项目 checkout |
+ | 做 | 拆分、派单、跟踪、收口 | 一个 Issue 从头到尾 |
+ | 不做 | 实现任何 Issue | 处理别的 Issue、合并 PR |
+ 
+@@ -98,6 +100,33 @@ manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。
+ 就是阻塞，不能换成数字或 `[]` 求绿。runtime 完成并独立安装前保留正文中的完整 reference；
+ 文档示例不表示功能已上线。
+ 
++## 跨项目协调工作区（可选）
++
++组织可以用一个独立仓库作日常入口和跨项目协调位置：定位目标项目、读取必要背景、准备交接任务书、回收结果。
++它是可选的，项目没有它照常按自身已采用的合同工作。它像任何项目一样自己采用并 pin 使用发布包；
++组织专属内容留在它自己的仓库，不进平台仓。
++
++- **不授权、不覆盖**：工作区里的项目目录、配置、技能与摘要不授予任何访问权，也不改变目标项目的规则、pin、路由、
++  确认点或在途授权。身份与访问仍以目标项目的 `.aisoft/project.json` 或站点 manifest 为准（ADR 0003）。
++- **角色**：工作区会话只协调、不实现，不进入任何项目的 worktree。项目已有调度会话或 Issue owner 时交回给它，
++  实现仍在目标项目的 Issue 会话里。工作区自身要入库的资料，由工作区仓库自己的 Issue 会话写入。
++- **读取**：逐个目标先核对 exact 仓库身份，再用该项目当前来源的 typed 只读操作读取；项目来源的入口在目标检出内调用，
++  或由目标会话、人回传带来源的读回。在目标检出里调用入口只决定访问来源，不表示本会话已加载该项目的规则。
++  摘要写明观察时间、revision 与读取身份，不成为项目事实、合同或完成状态的第二份权威。
++- **远端写入**：对其他项目缺省只读，产出任务书，由目标项目会话在自己的授权内建票、评论和推进。要放宽到评论通知或建票，
++  须写进工作区仓库自己已批准的合同，并服从目标项目规则与当前授权。入口能调用某个写操作，不等于已获授权。
++- **任务书**：在「派单」的要求之外，写明 exact 仓库、已核实的 checkout、合同入口、目标项目 pin、已确认决定及来源、
++  技能来源的核验记录与缺口、完整依赖身份和原证据位置。目标还没有 Issue 时写「待建票」，不编造编号；
++  形成 Issue 之前不开始实现。本机路径映射只是导航辅助，缺失或冲突时核实，不猜路径、不自动 clone。
++- **版本不一致**：目标按自己的 pin 执行，合法的旧 pin 不算失败，也不为交接升级。目标身份不符、受控字节漂移、
++  技能来源与执行合同冲突，或执行依赖无法核验时，停止受影响的写入与验收，保留只读分析；
++  没有取得的会话证据写「本次未取得证据」。
++- **依赖**：真实的跨仓前置按上文「依赖身份」保留 exact `owner/repo#N`，无法核验就是阻塞，不改称关系说明。
++- **不继承的职责**：下文「开放 Issue 清扫」与「本机清扫」只针对会话所在的仓库。工作区会话不清扫其他项目的 Issue、
++  标签或 worktree。
++- **缺席与恢复**：工作区不可用时，项目直接从自己的合同与 tracker 继续。恢复后回源重读当前状态，
++  不把旧快照补写成当前事实。
++
+ ## 开放 Issue 清扫
+ 
+ 调度会话的第二项职责。每次被唤醒时，以及一批 Issue 派单完成之后，清扫一次开放 Issue。

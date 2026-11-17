@@ -11,8 +11,10 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
 
 ## Repository initialization
 
-1. Finish AISoftPlatform repository onboarding first: exact manifest project, protected `main`, required CI, project Agent
-   permission gate and the 27-label manifest must all read back successfully.
+1. Finish the repository's adoption first (ADR 0003): the exact target bound by its access source (`.aisoft/project.json`
+   for a self-declared project, the manifest project for site-hardened access), protected `main`, required CI and the
+   27-label manifest must all be evidenced as that source requires. The project Agent permission gate applies only to
+   site-hardened access; a self-declared project records the maintainer's protection read-back in its adoption Issue.
 2. Explicitly invoke `$setup-matt-pocock-skills` once. Select **Other** for the tracker and use the three files under
    `templates/docs/agents/` as the Gitea, triage and domain configuration.
 3. Add the upstream skill's `## Agent skills` block only in the repository instruction file selected by that skill. If
