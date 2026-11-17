@@ -82,6 +82,7 @@ updated: 2026-11-16
 | required CI `CI / verify (pull_request)` | NOT RUN | PR 之后才有 |
 | Mac 技能重装与漂移读回 | NOT RUN | 合并后由负责人执行，不在本票授权内 |
 | 任何 provider 会话实际加载新文字 | NOT RUN | 本次未取得证据 |
+| `docs/governance/review-evidence-index.md` 追加本票一行 | PASS | R1、R2 的 exact head 与结论；之后仅证据提交 |
 
 ## 机器可读执行记录
 
@@ -229,7 +230,7 @@ updated: 2026-11-16
 | AC-5 | PASS | `check-project-leak.py` 计数与基线相同（4/12、7/29），完整 smoke 的泄漏守卫通过；新增文字只用「跨项目协调工作区」 |
 | AC-6 | PASS | T01 记录先红（2 个失败）后绿；fresh run 在导出副本上复核删短语与旧句回归 7/7 变红。Codex R1 的 P3（换行、HTML 注释可绕过）记为非阻断 |
 | AC-7 | PASS | bundle 只追加 1.25.0 / minor，31 条既有 release 与其余键同 `c14a86d4`，`--verify` 通过；隔离导出三端 10 个文件与源码字节相同；真实安装与项目采用未执行 |
-| AC-8 | 待定 | 范围、文档预检、完整 smoke、`classify --verify` 读回 `projected` 均通过，治理 STOP 与 fresh run 已记录；交叉审查 R1 为 FAIL，两条 P2 等负责人裁决后由 R2 复核 |
+| AC-8 | PASS | 范围、文档预检、完整 smoke、`classify --verify` 读回 `projected` 均通过，治理 STOP 与 fresh run 已记录；交叉审查 R1 FAIL，两条 P2 经负责人裁决后 R2 PASS。全分支 `git diff --check` 只在冻结补丁上失败，负责人已批准排除 |
 
 ## 交叉审查
 
@@ -238,6 +239,7 @@ updated: 2026-11-16
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
 | 1 | Claude | Codex（Herdr 空间「AISoftPlatform #451 实施审核」终端 `t4n`，`codex -m gpt-6-astra -c model_reasoning_effort="high" -s read-only -a never`；状态栏读回 GPT-6-Astra high；只读，未启动子代理；完成状态 done，用时 4 分 50 秒） | `c14a86d4ad0d1fd5938ab31343f8d72acd486a71..de47be284145abbbc14a72a65fe059473844b919` | FAIL | P2：执行强度偏离没有负责人的有效裁决（summary `override_reason` 只记录了待裁决事实）；P2：全分支 `git diff --check` 只在冻结补丁上失败，排除该文件需负责人批准，不能用排除后的 PASS 代替 plan 要求；P3：钉子测试匹配原始字符串，旧句加换行或把小节正文包进 HTML 注释可以绕过，当前冻结文字没有这种写法。处置：两条 P2 不涉及代码，已在本票线程请负责人分别裁决；P3 记为非阻断不修，理由是钉子防的是误删和旧句回归，平台在 #416 有追 Markdown 绕过的教训。其余核对（HEAD、范围、SHA-256、补丁与 diff 相等、reverse check、15 个合同用例、bundle 历史、`completed()`、泄漏、文档检查）均通过 |
+| 2 | Claude | Codex（同一只读会话 `t4n`，`hc send` 复用；状态栏读回 GPT-6-Astra high；完成状态 done，用时 2 分 21 秒） | 整体 `c14a86d4ad0d1fd5938ab31343f8d72acd486a71..e4be03240d5a1442bc093e9f11a2135547505e18`，增量 `de47be28..e4be0324` | PASS | R1 两条 P2 fixed：执行强度裁决两处一致、区分历史偏差与裁决；全分支 `git diff --check` 原始 FAIL 保留，排除只限冻结补丁一个文件。P3 residual，作为固定短语回归钉子延期可接受，不能描述成完整 Markdown 语义校验。新发现无。增量只改三份证据文档，七个受控文件字节不变，`completed()` 为 True。审查方的 `classify --verify` 被只读沙箱挡住临时文件，未取得读回；同一命令由实现方在 `e4be0324` 上运行，读回 `projected` |
 
 ## 遗留风险与未完成项
 
