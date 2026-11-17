@@ -33,9 +33,9 @@ route:
 confidence: high
 override_reason: '负责人 2026-11-16 在本票线程回复确认，批准合同并启动实施。路由 effort 为 max，路由卡各格不变。历史偏差：T01 由会话 0a9bf32d 执行，元数据读回 model claude-opus-5-5、effort medium；T02 由 fresh run 会话 7f3a1416 执行，读回 effort xhigh。负责人裁决：2026-11-17 在本票线程回复「1.执行强度的问题，我都已经改我 xhigh 了；2.按建议」。会话据此把本票执行强度认定为 xhigh，认可已有结果、不重跑 T01（协调者转述的理解相同）；T01 的检查已由 xhigh 的 fresh run 复跑，并在 Codex 交叉审查范围内。'
 depends_on: []
-status: approved
+status: pr-open
 branch: change/451-coordination-workspace
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/453
 created: 2026-11-16
 updated: 2026-11-16
 ---
