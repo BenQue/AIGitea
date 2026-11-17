@@ -25,7 +25,7 @@ updated: 2026-11-16
 - 基线：`origin/main` = `c14a86d4ad0d1fd5938ab31343f8d72acd486a71`（2026-11-16 broker `git.fetch.main` 返回 PASS 后读取；fresh run 于 2026-11-16 与 2026-11-17 各 fetch 一次，读回不变）。
 - 环境：Mac 平台检出 `/Users/benque/MyDocs/AISoftPlatform`；change worktree `/private/tmp/issue-451-coordination-workspace`。
 - 本记录负责证明的 acceptance criteria：AC-1 至 AC-8。T01 已执行到治理 STOP，并由 fresh run 补齐完成判定；T02 由 fresh run 执行。
-- 执行会话：T01 为 Claude Code 会话 `0a9bf32d-…`，会话元数据读回 model `claude-opus-5-5`、effort `medium`。T02 为 fresh run 会话 `7f3a1416-3cf0-4e14-8d1c-6f9aa2546590`，读回 model `claude-opus-5-5`、effort `xhigh`。路由为 max，两次偏离都记入 summary `override_reason`，待负责人裁决。实际加载的 superpowers 插件路径为 7.0.2，平台 pin 为 7.0.0；`executing-plans` 由该插件提供，Txx 仍是唯一合同。T02 的派生视图 `.superpowers/aisoft/451/issue-451-0a099e7c…-174020f8….md` 与台账 `.superpowers/sdd/issue-451-0a099e7c…-174020f8…/progress.md` 只是缓存。
+- 执行会话：T01 为 Claude Code 会话 `0a9bf32d-…`，会话元数据读回 model `claude-opus-5-5`、effort `medium`。T02 为 fresh run 会话 `7f3a1416-3cf0-4e14-8d1c-6f9aa2546590`，读回 model `claude-opus-5-5`、effort `xhigh`。路由为 max，两次偏离都记入 summary `override_reason`；负责人 2026-11-17 回复「1.执行强度的问题，我都已经改我 xhigh 了；2.按建议」，第 1 条把本票执行强度定为 xhigh，会话据此认可已有结果、不重跑 T01。实际加载的 superpowers 插件路径为 7.0.2，平台 pin 为 7.0.0；`executing-plans` 由该插件提供，Txx 仍是唯一合同。T02 的派生视图 `.superpowers/aisoft/451/issue-451-0a099e7c…-174020f8….md` 与台账 `.superpowers/sdd/issue-451-0a099e7c…-174020f8…/progress.md` 只是缓存。
 
 ## 准备阶段记录（不是实施验收）
 
@@ -71,7 +71,7 @@ updated: 2026-11-16
 | `prepare-ticket 451 T01 --provider claude --resume` | REFUSED（按设计） | 返回 `resume identity/semantic contract mismatch`。plan 语义摘要在 `3f4b6a62`、`638def25` 与当前工作树均为 `174020f8…`，差异只在 owner；runtime 规定未完成票只许原 owner resume，继任者只能消费已完成的依赖票。没有手改 owner 文件。负责人 2026-11-17 在本票线程回复「授权」，授权本 fresh run 写入 T01 完成记录；改为复跑可只读复现的 T01 检查，写入下方机器可读记录，再由 `prepare-ticket 451 T02` 的依赖校验判定 T01 |
 | T01 完成判定（fresh run 复跑） | PASS | 在 HEAD `638def25` 上：`tests.test_session_contract` 15 个 OK；补丁 SHA-256 等于 spec，在从 `c14a86d4` 取出的 `skills/` 副本上 forward `--check` 通过，在 HEAD 上 `--reverse --check` 通过；四份文件 SHA-256 等于 spec 固定值；bundle `--verify` 为 `VERIFIED 1.25.0 sha256:8e0e1540…`，既有 31 条 release 与 `contract_version`、`lock_path`、`members` 均与 `c14a86d4` 相同；泄漏守卫计数不变；`check-change-documents` 两项 PASS。AC 的 PASS 只指 T01 负责的部分，AC-2、AC-3、AC-4 的独立审议与 AC-7 的三端导出、AC-8 的 smoke、判级与交叉审查由 T02 承担 |
 | T01 删短语反证复核（fresh run） | 按预期失败后还原 | 在 worktree 外用 `git archive 638def25` 导出副本操作，不碰 worktree。逐条删掉「不授予任何访问权」「对其他项目缺省只读」「目标还没有 Issue 时写「待建票」，不编造编号」与小节标题，`test_coordination_workspace…` 各失败一次；删掉「它的项目目录不是第三种访问来源」，或把「已登记、已采用」「exact manifest project, protected」加回去，`test_adoption_entry_points…` 各失败一次。7 次变异 7 次失败，还原后 OK，四份文件 SHA-256 回到固定值 |
-| 全分支 `git diff --check c14a86d4..HEAD` | FAIL（仅冻结补丁） | 12 处 trailing whitespace 全部在 `proposals/coordination-workspace.patch`：unified diff 把空行上下文写成单个空格。T01 只对工作树跑过无范围的 `git diff --check`，所以没有暴露。排除该文件后同一命令退出 0。补丁 SHA-256 钉在 spec，T01 的 apply 命令也不带 `--unidiff-zero`，改成零上下文格式（#425 的做法）会改动冻结合同并使 T01 回执失效，所以不改补丁、如实记录。CI 与 smoke 都不运行这项检查 |
+| 全分支 `git diff --check c14a86d4..HEAD` | FAIL（仅冻结补丁；负责人批准排除） | 12 处 trailing whitespace 全部在 `proposals/coordination-workspace.patch`：unified diff 把空行上下文写成单个空格。T01 只对工作树跑过无范围的 `git diff --check`，所以没有暴露。排除该文件后同一命令退出 0。补丁 SHA-256 钉在 spec，T01 的 apply 命令也不带 `--unidiff-zero`，改成零上下文格式（#425 的做法）会改动冻结合同并使 T01 回执失效，所以不改补丁、如实记录。CI 与 smoke 都不运行这项检查。Codex R1 指出这需要负责人批准；负责人 2026-11-17 在本票线程回复「1.执行强度的问题，我都已经改我 xhigh 了；2.按建议」，第 2 条即接受只排除冻结补丁 `coordination-workspace.patch`。原始 FAIL 保留，不以排除后的 PASS 冒充原命令通过 |
 | T02 `AISOFT_USAGE_BASELINE_REF=c14a86d4ad0d1fd5938ab31343f8d72acd486a71 LC_ALL=C bash codex/tests/smoke.sh` | PASS | 在候选 HEAD `de47be284145abbbc14a72a65fe059473844b919` 上运行（开跑前 broker `git.fetch.main` 读回 `origin/main` 仍为 `c14a86d4…`，无须集成），hc 终端 `smoke-451` 后台执行，期间不动 worktree；退出 0，末行 `Codex platform static smoke checks passed.`，三段 unittest 共 899 个用例 OK，其中含本票两个新用例；运行后 HEAD 不变、工作树干净 |
 | T02 反向证明复核 | PASS | 补丁 `--reverse --check` 与四份全文 SHA-256 复核见上；完整 smoke 第 45 行 `test-usage-bundle: PASS`，该脚本的负向夹具含「成员改动未发版」（第 4 例）、「改写历史」（第 13 例）与「`--baseline-ref` 上已发布版本不可变」（第 16 例），只有负向用例按预期失败时脚本才 PASS；T01 删短语反证已由 fresh run 在导出副本上复核（7/7） |
 | `prepare-ticket 451 T02 --provider claude` | prepared | 依赖校验确认 T01 完成；ticket_base `1bf0dcbfc262f0df547fae25b0a2304848a947c9`，起始 staged、unstaged、untracked 均空，语义摘要 `174020f8…` 不变，回执 `.superpowers/aisoft/451/T02.json` |
@@ -243,4 +243,5 @@ updated: 2026-11-16
 
 - 本票合并只改变源码合同。Home 仓库的建立、采用、保护、CI、canary 与三项试点全部未执行，归 Home 自己的 Issue。
 - 正式跨仓依赖的 installed/live 验收仍未完成，本票不改变这一点。
-- 路由 effort 为 max，本会话的实际强度未能自证，实施前由负责人确认或裁决。
+- 路由 effort 为 max。T01 实际为 medium、T02 为 xhigh；负责人 2026-11-17 裁决执行强度取 xhigh（原话见 summary `override_reason`），T01 的检查已由 xhigh 的 fresh run 复跑。
+- 全分支 `git diff --check` 只在冻结补丁上失败，负责人批准排除该文件；补丁字节未改。
