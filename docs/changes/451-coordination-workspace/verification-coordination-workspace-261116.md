@@ -83,6 +83,13 @@ updated: 2026-11-16
 | Mac 技能重装与漂移读回 | NOT RUN | 合并后由负责人执行，不在本票授权内 |
 | 任何 provider 会话实际加载新文字 | NOT RUN | 本次未取得证据 |
 | `docs/governance/review-evidence-index.md` 追加本票一行 | PASS | R1、R2 的 exact head 与结论；之后仅证据提交 |
+| PR 453 首推与回填 | PASS | 负责人 2026-11-17 回复「确认提交」后 `aisoft open-pr 451` 首推候选 `2d2577cb`、建 PR 453、回填 summary 并再推；broker `git.fetch.change` 读回远端头 `0b3c614033b3444ac0dbd27f875c7f00e99fcaca`，等于本地与 owner 记录的 `last_push_head`，其父提交为 `2d2577cb`。首推返回体未单独输出 `pushed_head`，这里以回读的远端头与 FF 关系为证 |
+| required CI `CI / verify (pull_request)` 于 `0b3c6140` | FAIL（合并预览冲突） | run 2609 / job 3019 在 1 秒内失败，日志 `MERGE_PREVIEW_CONFLICT`：#450 的 PR 452 已合并，main 前进到 `f055d0acf0b747be847d65377f7eb83af2f0af00`，与本分支在 `usage/bundle.json`、`docs/governance/review-evidence-index.md` 冲突。CI 不回退到 PR head，所以没有给出其他结论 |
+| 集成 main | PASS | 按 spec「风险与回滚约束」处理：提交 `289472b3a27e42757c12ae70d558714f9fb45657` 把两个冲突文件退回合并基 `c14a86d4`（撤回未发布的 1.25.0 与本票索引行）；`49fbae08` 为 `git merge --no-ff origin/main`，父提交 [`289472b3`, `f055d0ac`]，无冲突、未手工改树；`d3d403f19f6d6862ed64df5be1a6c84320c50b22` 在其上用同样参数（`--today 2026-11-17`）重发 1.25.0 并补回索引行。没有手工拼接 #450 的 release 条目 |
+| 集成后 `usage-bundle.sh --verify` | PASS | `RELEASED`/`VERIFIED 1.25.0 sha256:e29eb237693f44d820f2c424b4f094e2c5bf92f67db326d551eb53b4dbbff6c3`，对 `--baseline-ref f055d0ac…` 与 `c14a86d4…` 都通过；main 上 32 条 release 原样是前缀，`contract_version`、`lock_path`、`members` 与 main 相同；与集成前的 1.25.0 相比只有 `skills/aisoft-platform/references/engineering-principles.md`（#450 改动）一个成员摘要变化 |
+| 集成后本地复核 | PASS | HEAD `d3d403f1`：`tests.test_session_contract` 15 个 OK；补丁 `--reverse --check` 通过，四份文件 SHA-256 仍为 spec 固定值；plan 语义摘要仍为 `174020f8…`；T01 完成记录按 `completed()` 同样的校验仍通过（summary 已因回填变为 `pr-open`，离线核对时只绕过 summary status 门）；泄漏守卫计数不变；`check-change-documents` 两项 PASS；`classify --verify 451` 读回 `projected`；`git diff --name-only f055d0ac..HEAD` 13 个路径全部在 git_scope；`git diff --check f055d0ac..HEAD` 仍只在冻结补丁上报 12 处，排除该文件后退出 0 |
+| 集成后隔离导出 | PASS | 新建 scratchpad 目录 `build-451-t02-r3`，`BUILT 1.25.0 sha256:e29eb237…`；三端 13 个文件（本票四份技能的全部落点，加上 #450 的 `engineering-principles.md` 三端）与源码字节相同 |
+| 集成后完整 smoke | PASS | `AISOFT_USAGE_BASELINE_REF=f055d0acf0b747be847d65377f7eb83af2f0af00 LC_ALL=C bash codex/tests/smoke.sh` 在 `d3d403f1` 上退出 0，899 个用例 OK，`test-usage-bundle: PASS`。基线改用集成后的 main，比 plan 写的 `c14a86d4` 更严：它同时要求 #450 发布的 1.24.2 保持不变 |
 
 ## 机器可读执行记录
 
