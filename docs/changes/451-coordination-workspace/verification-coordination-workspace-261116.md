@@ -72,11 +72,13 @@ updated: 2026-11-16
 | T01 完成判定（fresh run 复跑） | PASS | 在 HEAD `638def25` 上：`tests.test_session_contract` 15 个 OK；补丁 SHA-256 等于 spec，在从 `c14a86d4` 取出的 `skills/` 副本上 forward `--check` 通过，在 HEAD 上 `--reverse --check` 通过；四份文件 SHA-256 等于 spec 固定值；bundle `--verify` 为 `VERIFIED 1.25.0 sha256:8e0e1540…`，既有 31 条 release 与 `contract_version`、`lock_path`、`members` 均与 `c14a86d4` 相同；泄漏守卫计数不变；`check-change-documents` 两项 PASS。AC 的 PASS 只指 T01 负责的部分，AC-2、AC-3、AC-4 的独立审议与 AC-7 的三端导出、AC-8 的 smoke、判级与交叉审查由 T02 承担 |
 | T01 删短语反证复核（fresh run） | 按预期失败后还原 | 在 worktree 外用 `git archive 638def25` 导出副本操作，不碰 worktree。逐条删掉「不授予任何访问权」「对其他项目缺省只读」「目标还没有 Issue 时写「待建票」，不编造编号」与小节标题，`test_coordination_workspace…` 各失败一次；删掉「它的项目目录不是第三种访问来源」，或把「已登记、已采用」「exact manifest project, protected」加回去，`test_adoption_entry_points…` 各失败一次。7 次变异 7 次失败，还原后 OK，四份文件 SHA-256 回到固定值 |
 | 全分支 `git diff --check c14a86d4..HEAD` | FAIL（仅冻结补丁） | 12 处 trailing whitespace 全部在 `proposals/coordination-workspace.patch`：unified diff 把空行上下文写成单个空格。T01 只对工作树跑过无范围的 `git diff --check`，所以没有暴露。排除该文件后同一命令退出 0。补丁 SHA-256 钉在 spec，T01 的 apply 命令也不带 `--unidiff-zero`，改成零上下文格式（#425 的做法）会改动冻结合同并使 T01 回执失效，所以不改补丁、如实记录。CI 与 smoke 都不运行这项检查 |
-| T02 完整 smoke | NOT RUN | 待执行 |
+| T02 `AISOFT_USAGE_BASELINE_REF=c14a86d4ad0d1fd5938ab31343f8d72acd486a71 LC_ALL=C bash codex/tests/smoke.sh` | PASS | 在候选 HEAD `de47be284145abbbc14a72a65fe059473844b919` 上运行（开跑前 broker `git.fetch.main` 读回 `origin/main` 仍为 `c14a86d4…`，无须集成），hc 终端 `smoke-451` 后台执行，期间不动 worktree；退出 0，末行 `Codex platform static smoke checks passed.`，三段 unittest 共 899 个用例 OK，其中含本票两个新用例；运行后 HEAD 不变、工作树干净 |
+| T02 反向证明复核 | PASS | 补丁 `--reverse --check` 与四份全文 SHA-256 复核见上；完整 smoke 第 45 行 `test-usage-bundle: PASS`，该脚本的负向夹具含「成员改动未发版」（第 4 例）、「改写历史」（第 13 例）与「`--baseline-ref` 上已发布版本不可变」（第 16 例），只有负向用例按预期失败时脚本才 PASS；T01 删短语反证已由 fresh run 在导出副本上复核（7/7） |
 | `prepare-ticket 451 T02 --provider claude` | prepared | 依赖校验确认 T01 完成；ticket_base `1bf0dcbfc262f0df547fae25b0a2304848a947c9`，起始 staged、unstaged、untracked 均空，语义摘要 `174020f8…` 不变，回执 `.superpowers/aisoft/451/T02.json` |
 | T02 `bash codex/tools/usage-bundle.sh --build <本票新建的隔离目录>` | PASS | 目录为本会话 scratchpad 下新建的 `build-451-t02`，不是真实 HOME，不是安装。输出 `BUILT 1.25.0 sha256:8e0e15405bb6adac945943e7bc267bcd57c20659e8c25e6900e1b284421e43c8`，与 `--verify` 摘要相同 |
 | T02 三端字节比对 | PASS | `cmp` 逐个比较 `project/.agents`、`project/.claude`、`project/.cursor` 下的 `skills/issue-session-flow/SKILL.md`、`skills/aisoft-platform/SKILL.md`、`skills/aisoft-platform/references/greenfield-planning.md` 与源码，9 个文件全部相同。`aisoft-matt-workflow` 只导出到 `.agents`（Claude、Cursor 两端没有这个技能目录），该落点 1 个文件与源码相同 |
-| T02 `classify --apply` 与 `--verify` | NOT RUN | 待执行 |
+| T02 `bash codex/tools/aisoft classify --apply 451` | PASS | `result: updated`，`change_type: platform`，`complexity: complex` |
+| T02 `bash codex/tools/aisoft classify --verify 451` | PASS | 单独运行，`result: projected`，「Issue #451 carries the classification its merged summary declares」 |
 | required CI `CI / verify (pull_request)` | NOT RUN | PR 之后才有 |
 | Mac 技能重装与漂移读回 | NOT RUN | 合并后由负责人执行，不在本票授权内 |
 | 任何 provider 会话实际加载新文字 | NOT RUN | 本次未取得证据 |
@@ -220,14 +222,14 @@ updated: 2026-11-16
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | NOT RUN | 待执行 |
-| AC-2 | NOT RUN | 待执行 |
-| AC-3 | NOT RUN | 待执行 |
-| AC-4 | NOT RUN | 待执行 |
-| AC-5 | NOT RUN | 待执行 |
-| AC-6 | NOT RUN | 待执行 |
-| AC-7 | NOT RUN | 待执行 |
-| AC-8 | NOT RUN | 待执行 |
+| AC-1 | PASS | 四份文件全文 SHA-256 等于 spec「应用后」值；补丁在 `c14a86d4` 的副本上正向 `--check`、在 HEAD 上 `--reverse --check` 均通过；Codex R1 核对补丁与实际 diff 相等，补丁外条文不变 |
+| AC-2 | PASS | 新小节写明可选、不授权不覆盖、只协调不实现、不进入 worktree、对其他项目缺省只读、不继承清扫职责、缺席时项目照常工作；钉子测试覆盖三条关键规则；Codex R1 逐条对照 spec 场景，未提出语义发现 |
+| AC-3 | PASS | 「待建票」规则被钉；版本不一致按 D5、依赖指回现有「依赖身份」；diff 未触及确认点、路由、单写者、合并与部署条文，原有 13 个合同用例与完整 smoke 通过；Codex R1 未提出发现 |
+| AC-4 | PASS | 两条否定断言与「它的项目目录不是第三种访问来源」正向断言通过；与 ADR 0003 的对照由 Codex R1 审议，未提出发现 |
+| AC-5 | PASS | `check-project-leak.py` 计数与基线相同（4/12、7/29），完整 smoke 的泄漏守卫通过；新增文字只用「跨项目协调工作区」 |
+| AC-6 | PASS | T01 记录先红（2 个失败）后绿；fresh run 在导出副本上复核删短语与旧句回归 7/7 变红。Codex R1 的 P3（换行、HTML 注释可绕过）记为非阻断 |
+| AC-7 | PASS | bundle 只追加 1.25.0 / minor，31 条既有 release 与其余键同 `c14a86d4`，`--verify` 通过；隔离导出三端 10 个文件与源码字节相同；真实安装与项目采用未执行 |
+| AC-8 | 待定 | 范围、文档预检、完整 smoke、`classify --verify` 读回 `projected` 均通过，治理 STOP 与 fresh run 已记录；交叉审查 R1 为 FAIL，两条 P2 等负责人裁决后由 R2 复核 |
 
 ## 交叉审查
 
@@ -235,7 +237,7 @@ updated: 2026-11-16
 
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
-| 1 | Claude | Codex（Herdr，GPT-6-Astra high，实际值待记录） | 待填写 | NOT RUN | 待填写 |
+| 1 | Claude | Codex（Herdr 空间「AISoftPlatform #451 实施审核」终端 `t4n`，`codex -m gpt-6-astra -c model_reasoning_effort="high" -s read-only -a never`；状态栏读回 GPT-6-Astra high；只读，未启动子代理；完成状态 done，用时 4 分 50 秒） | `c14a86d4ad0d1fd5938ab31343f8d72acd486a71..de47be284145abbbc14a72a65fe059473844b919` | FAIL | P2：执行强度偏离没有负责人的有效裁决（summary `override_reason` 只记录了待裁决事实）；P2：全分支 `git diff --check` 只在冻结补丁上失败，排除该文件需负责人批准，不能用排除后的 PASS 代替 plan 要求；P3：钉子测试匹配原始字符串，旧句加换行或把小节正文包进 HTML 注释可以绕过，当前冻结文字没有这种写法。处置：两条 P2 不涉及代码，已在本票线程请负责人分别裁决；P3 记为非阻断不修，理由是钉子防的是误删和旧句回归，平台在 #416 有追 Markdown 绕过的教训。其余核对（HEAD、范围、SHA-256、补丁与 diff 相等、reverse check、15 个合同用例、bundle 历史、`completed()`、泄漏、文档检查）均通过 |
 
 ## 遗留风险与未完成项
 
